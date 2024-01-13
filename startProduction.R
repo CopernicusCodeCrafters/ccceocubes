@@ -1,6 +1,6 @@
 # Start service
 library(openeocubes)
-
+ 
 
 aws.host <- Sys.getenv("AWSHOST")
 
