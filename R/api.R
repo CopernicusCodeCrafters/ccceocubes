@@ -198,11 +198,11 @@ NULL
         file = job$results
         file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
     }
-        }
+        
     else {
       throwError("FormatUnsupported")
+    }
   }
-  
 
   first = file[1]
   res$status = 200
