@@ -270,9 +270,10 @@ load_collection <- Process$new(
    returns=eo_datacube,
    # predictors : bands which should be used for prediction
    # zusätzliche Paramter :predictors ? 
-   operation=function(data,samples,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
-     # später weg machen 
-     # später weg machen 
+   operation=function(data,samples= NULL,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
+     
+     # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
+     samples= base::paste(Session$getConfig()$workspace.path,"/Trainingspolygone.json")
   predictors= c("B02","B03","B04")
   
   message(paste("Class of data: ",toString(class(data))))
@@ -286,7 +287,7 @@ load_collection <- Process$new(
     message("You need to deliver a name so the model can be saved in a .rds file")
     stop("")
   }
-  # Vielleicht vorher in igenem Prozess ?
+  
   
   tryCatch({
     if(!(is.null(predictors))){
