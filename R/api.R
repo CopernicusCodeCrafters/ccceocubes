@@ -172,6 +172,9 @@ NULL
     else if (format$title == "GeoTiff") {
       file = gdalcubes::write_tif(job$results)
     }
+    else if (format$title == "rds"){
+      file =job$results
+    }
     else {
       throwError("FormatUnsupported")
     }

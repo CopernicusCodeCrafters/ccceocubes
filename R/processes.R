@@ -379,7 +379,7 @@ load_collection <- Process$new(
   if (save){
     tryCatch({
       message("...Before saving")
-      saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
+      model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
       message(paste("Saved as ",paste(name,".rds")))
     },
     error = function(err){
