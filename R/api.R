@@ -186,8 +186,8 @@ NULL
     else if (format == "GTiff") {
       file = gdalcubes::write_tif(job$results)
     }
-    else if (format$title == "rds"){
-      file =job$results
+    else if (format == "rds"){
+      file = job$results
     }
     else {
       throwError("FormatUnsupported")
