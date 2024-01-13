@@ -336,7 +336,7 @@ load_collection <- Process$new(
   # merge with id
   tryCatch({
     message("...Before dataframe Merge")
-    training_df = merge(training.polygons, extractedData, by = "OID")
+    #training_df = merge(training.polygons, extractedData, by = "FID")
     message("...After dataframe merge")
   },
   error = function(err){
@@ -362,14 +362,14 @@ load_collection <- Process$new(
     
     trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
     
-    model <- caret::train(
-      class ~ .,
-      data = trainDat,
-      tuneGrid = expand.grid(mtry = mt),
-      trControl = trainControl,
-      method= "rf",
-      importance=TRUE,
-      ntree=nt)
+    # model <- caret::train(
+    #   class ~ .,
+    #   data = trainDat,
+    #   tuneGrid = expand.grid(mtry = mt),
+    #   trControl = trainControl,
+    #   method= "rf",
+    #   importance=TRUE,
+    #   ntree=nt)
     message("...After model creation")
   },
   error = function(err){
@@ -379,7 +379,7 @@ load_collection <- Process$new(
   if (save){
     tryCatch({
       message("...Before saving")
-      model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
+      #model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
       message(paste("Saved as ",paste(name,".rds")))
     },
     error = function(err){
@@ -387,7 +387,9 @@ load_collection <- Process$new(
       message(toString(err))
     })
   }
-  return(model)
+  return(extractedData)
+  #return(training_df)
+  #return(model)
    })
 
 

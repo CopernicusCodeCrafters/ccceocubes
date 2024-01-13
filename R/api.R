@@ -189,10 +189,20 @@ NULL
     else if (format == "rds"){
       file = job$results
     }
+    else if ("sf" %in% class(job$results) && "data.frame" %in% class(job$results)){
+              file = base::tempfile()
+
+              sf::st_write(job$results, file, driver = "netCDF")
+    }
+    else if ("data.frame" %in% class(job$results) && !("sf" %in% class(job$results))){
+        file = job$results
+        file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
+    }
+        }
     else {
       throwError("FormatUnsupported")
-    }
   }
+  
 
   first = file[1]
   res$status = 200
