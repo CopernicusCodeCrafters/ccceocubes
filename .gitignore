@@ -1,3 +1,8 @@
+# dummy.R for testing R processes before pushing
+dummy.R
+start3_save_gsw2.R
+.vs
+
 # History files
 .Rhistory
 .Rapp.history

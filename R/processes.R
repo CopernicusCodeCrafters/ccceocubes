@@ -5,6 +5,7 @@
 #' @import rstac
 #' @import useful
 #' @import sf
+#' @import caret
 NULL
 
 #' schema_format
@@ -212,7 +213,231 @@ load_collection <- Process$new(
   }
 )
 
+#train_model_ml
+ train_model_ml <-Process$new(
+   id="train_model_ml",
+  description = "train random forest model.",
+   categories = as.array("cubes"),
+   summary = "training a rf model",
+   parameters = list(
+     Parameter$new(
+         name = "data",
+       description = "datacube",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       )
+     ),
+     Parameter$new(
+       name = "samples",
+       description = "training polygons in form of GeoJSON",
+       schema = list(
+         type = "object",
+         subtype = "geojson"
+        
+       )
+     ),
+     Parameter$new(
+       name = "n_tree",
+       description = "number of trees",
+       schema = list(
+         type = "numeric"
+                )
+     ),
+     Parameter$new(
+       name = "mtry",
+       description = "number of predictors selected for each tree",
+       schema = list(
+         type = "numeric"
+       )
+     ),
+     Parameter$new(
+       name = "save",
+       description = "boolean determining if the model should be saved",
+       schema = list(
+         type = "boolean"
+        
+       )
+     ),
+     Parameter$new(
+       name = "name",
+       description = "name of the model which will be used to save the model",
+       schema = list(
+         type = "String"
+       )
+     )
+   ),
+   returns=eo_datacube,
+   # predictors : bands which should be used for prediction
+   # zusätzliche Paramter :predictors ? 
+   operation=function(data,samples,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
+     # später weg machen 
+     # später weg machen 
+  predictors= c("B02","B03","B04")
+  
+  message(paste("Class of data: ",toString(class(data))))
+  message(paste("Predictors: ",toString.default(predictors)))
+  message(paste("ntree: ",toString(nt)))
+  message(paste("mtry: ",toString(mt)))
+  message(paste("Saving: ",toString(save)))
+  
+  if (save == TRUE && is.null(name))
+  {
+    message("You need to deliver a name so the model can be saved in a .rds file")
+    stop("")
+  }
+  # Vielleicht vorher in igenem Prozess ?
+  
+  tryCatch({
+    if(!(is.null(predictors))){
+      data |>
+        gdalcubes::select_bands(predictors)
+    }
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in selecting bands with selected predictors")
+  })
+  
+  tryCatch({
+    # training data as sf so extract_geom can work with it
+    # and harmonize CRS
+    if(class(samples)[1]=="sf"||class(samples)[2]=="sf"){
+      message("samples is sf object")
+      training.polygons = samples
+      c = gdalcubes::srs(data)
+      crsUse=as.numeric(gsub("EPSG:","",c))
+      training.polygons = sf::st_transform(training.polygons, crs = crsUse)
+    }
+    else{
+      
+      training.polygons = sf::st_read(samples)
+      message("...After samples read")
+      
+      c = gdalcubes::srs(data)
+      crsUse=as.numeric(gsub("EPSG:","",c))
+      training.polygons = sf::st_transform(training.polygons, crs = crsUse)
+    }
+    
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in reading training data or transforming CRS ")
+  })
+  tryCatch({
+    message("...Before extract_geom")
+    extractedData = gdalcubes::extract_geom(data, training.polygons)
+    message("...After extract_geom")
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in extract_geom")
+  })
+  # merge with id
+  tryCatch({
+    message("...Before dataframe Merge")
+    training_df = merge(training.polygons, extractedData, by = "OID")
+    message("...After dataframe merge")
+  },
+  error = function(err){
+    message("...Error in merging")
+    message(toString(err))
+  })
+  
+  tryCatch({
+    message("...Before Data Partition")
+    trainIDs = caret::createDataPartition(training_df, p = 0.1, list = FALSE)
+    trainDat <- training_df[trainIDs,]
+    testDat  <- training_df[-trainIDs,]
+    message("...After Data Partition")
+  },
+  error = function(err){
+    message("Error in Data Partition")
+    message(toString(err))
+  })
+  
+  tryCatch({
+    message("...Before model creation")
+    set.seed(123)
+    
+    trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
+    
+    model <- caret::train(
+      class ~ .,
+      data = trainDat,
+      tuneGrid = expand.grid(mtry = mt),
+      trControl = trainControl,
+      method= "rf",
+      importance=TRUE,
+      ntree=nt)
+    message("...After model creation")
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in model creation")
+  })
+  if (save){
+    tryCatch({
+      message("...Before saving")
+      saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
+      message(paste("Saved as ",paste(name,".rds")))
+    },
+    error = function(err){
+      message("Error in saving")
+      message(toString(err))
+    })
+  }
+  return(model)
+   })
 
+
+# classify_easy
+# cube_classify_1 <- Process$new(
+#   id = "cube_classify_1",
+#   description = "classifies a datacube after reducing dimension.",
+#   categories = as.array("cubes"),
+#   summary = "classifying using rf machine learning model",
+#   parameters = list(
+#     Parameter$new(
+#       name = "data",
+#       description = "A data cube.",
+#       schema = list(
+#         type = "object",
+#         subtype = "raster-cube"
+#       )
+#     ),
+#     Parameter$new(
+#       name = "model",
+#       description = "machine learning model",
+#       schema = list(
+#         type = "object",
+#       )
+#     )    
+#   ),
+#   returns=eo_datacube,
+#   # datacube : datacube used for classification
+#   # model    : trained machine learning model used for classification
+#   # job      : 
+  
+#   operation= function(data,model,aoi,crs,job){
+#     #reduce dimension erwartet Funktion 
+#     #data cube vorher reduced : muss hier nicht mehr getan werden
+    
+#     tryCatch({
+#       rfPredict <- predict(model,data)
+      
+#     },
+#     error = function(err)
+#     {
+#       message(toString(err))
+#       message("Error in predicting ")
+#     })
+    
+    
+    
+#   }
+  
+# )
 #' load stac
 load_stac <- Process$new(
   id = "load_stac",
