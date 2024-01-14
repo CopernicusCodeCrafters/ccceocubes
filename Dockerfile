@@ -1,9 +1,10 @@
-FROM kwundram/ccceocubes:dep
+FROM kwundram/ccceocubes:dep2
 
 # install packages from local directory
 COPY ./ /opt/dockerfiles/
 #for test:
 COPY ./Trainingspolygone.json /var/openeo/workspace
+#RUN Rscript -e "install.packages('caret',dependencies=TRUE)"
 RUN Rscript -e "remotes::install_local('/opt/dockerfiles',dependencies=TRUE)"
 
 # cmd or entrypoint for startup

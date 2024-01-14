@@ -1,5 +1,8 @@
 # Start service
 library(openeocubes)
+library(gdalcubes)
+library(caret)
+library(sf)
  
 
 aws.host <- Sys.getenv("AWSHOST")

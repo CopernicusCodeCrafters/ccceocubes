@@ -395,8 +395,8 @@ load_collection <- Process$new(
    })
 
 
-# classify_easy
-# cube_classify_1 <- Process$new(
+# cube_classify
+# cube_classify <- Process$new(
 #   id = "cube_classify_1",
 #   description = "classifies a datacube after reducing dimension.",
 #   categories = as.array("cubes"),
