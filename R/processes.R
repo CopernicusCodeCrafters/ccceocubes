@@ -273,8 +273,8 @@ load_collection <- Process$new(
    # zusätzliche Paramter :predictors ? 
    operation=function(data,samples= NULL,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
      
-     # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
-     samples= base::paste(Session$getConfig()$workspace.path,"/Trainingspolygone.json")
+  # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
+  samples= sf::st_read(base::paste(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
   predictors= c("B02","B03","B04")
   
   message(paste("Class of data: ",toString(class(data))))
