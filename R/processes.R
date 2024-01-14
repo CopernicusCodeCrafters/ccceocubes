@@ -337,7 +337,7 @@ load_collection <- Process$new(
   })
   # merge with id
   tryCatch({
-    message("...Before dataframe Merge")
+    
     #training_df = merge(training.polygons, extractedData, by = "FID")
     message("...After dataframe merge")
   },
@@ -347,10 +347,10 @@ load_collection <- Process$new(
   })
   
   tryCatch({
-    message("...Before Data Partition")
-    trainIDs = caret::createDataPartition(training_df, p = 0.1, list = FALSE)
-    trainDat <- training_df[trainIDs,]
-    testDat  <- training_df[-trainIDs,]
+    
+    #trainIDs = caret::createDataPartition(training_df, p = 0.1, list = FALSE)
+    #trainDat <- training_df[trainIDs,]
+    #testDat  <- training_df[-trainIDs,]
     message("...After Data Partition")
   },
   error = function(err){
@@ -359,7 +359,7 @@ load_collection <- Process$new(
   })
   
   tryCatch({
-    message("...Before model creation")
+    
     set.seed(123)
     
     trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
@@ -380,7 +380,7 @@ load_collection <- Process$new(
   })
   if (save){
     tryCatch({
-      message("...Before saving")
+      message("Saving...")
       #model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
       message(paste("Saved as ",paste(name,".rds")))
     },
