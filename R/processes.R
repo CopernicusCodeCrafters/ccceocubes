@@ -317,6 +317,8 @@ load_collection <- Process$new(
   tryCatch({
     message("...Before extract_geom")
     extractedData = gdalcubes::extract_geom(data, training.polygons)
+    message("extracted Data:")
+    print(extractedData)
     message("...After extract_geom")
   },
   error = function(err){
@@ -330,6 +332,7 @@ load_collection <- Process$new(
     }
     if (!(is.null(training.polygons$classification))){
       training.polygons=dplyr::rename(training.polygons, class=classification)
+      
     }
   },
   error = function(err){
@@ -341,6 +344,8 @@ load_collection <- Process$new(
     training.polygons=dplyr::select(training.polygons, -name)
     }
     training.polygons$geometry=NULL
+    message("Trainingpolygons:")
+      print(training.polygons)
   },
   error = function(err){
     message("...Could not rename id-column of training polygons")
@@ -350,6 +355,7 @@ load_collection <- Process$new(
     
     training_df = merge(training.polygons, extractedData, by = "FID")
     message("...After dataframe merge")
+    print(training_df)
   },
   error = function(err){
     message("...Error in merging")
@@ -375,7 +381,7 @@ load_collection <- Process$new(
     trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
     
      model <- caret::train(
-       #class ~ .,
+       data = trainDat,
        trainDat$class~.,
        tuneGrid = expand.grid(mtry = mt),
        trControl = trainControl,
@@ -682,7 +688,7 @@ filter_bands <- Process$new(
   ),
   returns = eo_datacube,
   operation = function(data, bands, job) {
-    print("\nBänder :")
+    print("Bänder :")
     print(gdalcubes::bands(data))
 
 
