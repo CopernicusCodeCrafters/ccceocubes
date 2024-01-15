@@ -271,14 +271,11 @@ load_collection <- Process$new(
    returns=eo_datacube,
    # predictors : bands which should be used for prediction
    # zusätzliche Paramter :predictors ? 
-   operation=function(data,samples= NULL,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
+   operation=function(data,samples= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
   tryCatch({
       # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
   samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
-  predictors= c("B02","B03","B04")
-  
   message(paste("Class of data: ",toString(class(data))))
-  message(paste("Predictors: ",toString.default(predictors)))
   message(paste("ntree: ",toString(nt)))
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
@@ -290,19 +287,6 @@ load_collection <- Process$new(
   error = function(err){
     message(toString(err))
     message("Error in First step")
-  })
-  
-  
-  
-  tryCatch({
-    if(!(is.null(predictors))){
-      data |>
-        gdalcubes::select_bands(predictors)
-    }
-  },
-  error = function(err){
-    message(toString(err))
-    message("Error in selecting bands with selected predictors")
   })
   
   tryCatch({
@@ -386,7 +370,7 @@ load_collection <- Process$new(
     tryCatch({
       message("Saving...")
       #model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
-      message(paste("Saved as ",paste(name,".rds")))
+      message(paste("Saved as ",paste0(name,".rds")))
     },
     error = function(err){
       message("Error in saving")
