@@ -6,6 +6,7 @@ services:
     environment:
       - TZ=Etc/UTC
       - DEBIAN_FRONTEND=noninteractive
+      - AWSHOST="34.209.215.214"
     container_name: openeocubes
     ports:
       - "8000:8000"

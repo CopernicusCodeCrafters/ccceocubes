@@ -214,6 +214,35 @@ load_collection <- Process$new(
   }
 )
 
+#fill_NAs_cube
+fill_NAs_cube <- Process$new(
+  id="fill_NAs_cube",
+  description = "fills NA pixels of a data cube by nearest neighbor.",
+  categories= as.array("cubes"),
+  summary = "Filling NAs values",
+  parameters = list(
+    Parameter$new(
+      name = "data",
+      description = "datacube",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       )
+    )
+  ),
+  returns=eo_datacube,
+  operation=function(data,job){
+
+    tryCatch({
+      cube = gdalcubes::fill_time(data, method = "near")
+
+    },error = function(err){
+      message(toString(err))
+      message("Error in Filling NAs of cube")
+      })
+    return(cube)
+  }
+)
 #train_model_ml
  train_model_ml <-Process$new(
    id="train_model_ml",
@@ -317,6 +346,7 @@ load_collection <- Process$new(
   tryCatch({
     message("...Before extract_geom")
     extractedData = gdalcubes::extract_geom(data, training.polygons)
+    extractedData = =dplyr::select(extractedData, -time)
     message("extracted Data:")
     print(extractedData)
     message("...After extract_geom")
