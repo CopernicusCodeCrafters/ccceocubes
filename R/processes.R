@@ -235,7 +235,7 @@ fill_NAs_cube <- Process$new(
 
     tryCatch({
       cube = gdalcubes::fill_time(data, method = "near")
-
+      message("...After Filling NAs")
     },error = function(err){
       message(toString(err))
       message("Error in Filling NAs of cube")
@@ -384,6 +384,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     
     training_df = merge(training.polygons, extractedData, by = "FID")
+    training_df = dplyr::select(training_df, -FID)
     message("...After dataframe merge")
     print(training_df)
   },
