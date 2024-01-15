@@ -346,7 +346,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     message("...Before extract_geom")
     extractedData = gdalcubes::extract_geom(data, training.polygons)
-    extractedData = =dplyr::select(extractedData, -time)
+    extractedData = dplyr::select(extractedData, -time)
     message("extracted Data:")
     print(extractedData)
     message("...After extract_geom")
