@@ -289,7 +289,7 @@ load_collection <- Process$new(
   }},
   error = function(err){
     message(toString(err))
-    message("Error in selecting bands with selected predictors")
+    message("Error in First step")
   })
   
   
@@ -676,7 +676,12 @@ filter_bands <- Process$new(
   ),
   returns = eo_datacube,
   operation = function(data, bands, job) {
+    print("\nBänder :")
+    print(gdalcubes::bands(data))
+
+
     if (!is.null(bands)) {
+
       cube <- gdalcubes::select_bands(data, bands)
     }
     message("Filtered data cube ....")
