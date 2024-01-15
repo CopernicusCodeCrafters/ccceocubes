@@ -331,5 +331,6 @@ addEndpoint = function() {
   Session$assignProcess(multiply)
   Session$assignProcess(divide)
   Session$assignProcess(train_model_ml)
+  Session$assignProcess(fill_NAs_cube)
 
 }
