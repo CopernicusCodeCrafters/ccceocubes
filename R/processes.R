@@ -325,10 +325,15 @@ load_collection <- Process$new(
   })
   # merge with id
   tryCatch({
-    training.polygons=dplyr::rename(training.polygons, FID=object_id)
+    if(!(is.null(training.polygons$object_id))){
+      training.polygons=dplyr::rename(training.polygons, FID=object_id)
+    }
+    if (!(is.null(training.polygons$classification))){
+      training.polygons=dplyr::rename(training.polygons, class=classification)
+    }
   },
   error = function(err){
-    message("...Could not rename id-column of training polygons")
+    message("...Could not rename column of training polygons")
     message(toString(err))
   })
   tryCatch({
@@ -370,8 +375,8 @@ load_collection <- Process$new(
     trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
     
      model <- caret::train(
-       class ~ .,
-       data = trainDat,
+       #class ~ .,
+       trainDat$class~.,
        tuneGrid = expand.grid(mtry = mt),
        trControl = trainControl,
        method= "rf",

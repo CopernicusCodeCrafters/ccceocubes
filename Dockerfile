@@ -4,7 +4,7 @@ FROM kwundram/ccceocubes:dep2
 COPY ./ /opt/dockerfiles/
 #for test:
 COPY ./Trainingspolygone.json /var/openeo/workspace
-RUN Rscript -e "install.packages('dplyr',dependencies=TRUE)"
+RUN Rscript -e "install.packages('dplyr',dependencies=FALSE)"
 RUN Rscript -e "remotes::install_local('/opt/dockerfiles',dependencies=FALSE)"
 
 # cmd or entrypoint for startup
