@@ -413,7 +413,7 @@ fill_NAs_cube <- Process$new(
     
      model <- caret::train(
        data = trainDat,
-       trainDat$class~.,
+       class~.,
        tuneGrid = expand.grid(mtry = mt),
        trControl = trainControl,
        method= "rf",
