@@ -325,8 +325,25 @@ load_collection <- Process$new(
   })
   # merge with id
   tryCatch({
+    training.polygons=dplyr::rename(training.polygons, FID=object_id)
+  },
+  error = function(err){
+    message("...Could not rename id-column of training polygons")
+    message(toString(err))
+  })
+  tryCatch({
+    if(!(is.null(training.polygons$name))){
+    training.polygons=dplyr::select(training.polygons, -name)
+    }
+    training.polygons=dplyr::select(training.polygons, -geometry)
+  },
+  error = function(err){
+    message("...Could not rename id-column of training polygons")
+    message(toString(err))
+  })
+  tryCatch({
     
-    #training_df = merge(training.polygons, extractedData, by = "FID")
+    training_df = merge(training.polygons, extractedData, by = "FID")
     message("...After dataframe merge")
   },
   error = function(err){
@@ -336,9 +353,9 @@ load_collection <- Process$new(
   
   tryCatch({
     
-    #trainIDs = caret::createDataPartition(training_df, p = 0.1, list = FALSE)
-    #trainDat <- training_df[trainIDs,]
-    #testDat  <- training_df[-trainIDs,]
+    trainIDs = caret::createDataPartition(training_df, p = 0.1, list = FALSE)
+    trainDat <- training_df[trainIDs,]
+    testDat  <- training_df[-trainIDs,]
     message("...After Data Partition")
   },
   error = function(err){
@@ -352,14 +369,14 @@ load_collection <- Process$new(
     
     trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
     
-    # model <- caret::train(
-    #   class ~ .,
-    #   data = trainDat,
-    #   tuneGrid = expand.grid(mtry = mt),
-    #   trControl = trainControl,
-    #   method= "rf",
-    #   importance=TRUE,
-    #   ntree=nt)
+     model <- caret::train(
+       class ~ .,
+       data = trainDat,
+       tuneGrid = expand.grid(mtry = mt),
+       trControl = trainControl,
+       method= "rf",
+       importance=TRUE,
+       ntree=nt)
     message("...After model creation")
   },
   error = function(err){
@@ -369,7 +386,7 @@ load_collection <- Process$new(
   if (save){
     tryCatch({
       message("Saving...")
-      #model = saveRDS(model, paste0(Session$getConfig()$workspace.path, "/", name, ".rds"))
+      #model = saveRDS(model, paste0(Session$getConfig()$workspace.path,"/", name, ".rds"))
       message(paste("Saved as ",paste0(name,".rds")))
     },
     error = function(err){
@@ -377,9 +394,9 @@ load_collection <- Process$new(
       message(toString(err))
     })
   }
-  return(extractedData)
+  #return(extractedData)
   #return(training_df)
-  #return(model)
+  return(model)
    })
 
 
