@@ -272,9 +272,9 @@ load_collection <- Process$new(
    # predictors : bands which should be used for prediction
    # zusätzliche Paramter :predictors ? 
    operation=function(data,samples= NULL,predictors= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
-     
-  # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
-  samples= sf::st_read(base::paste(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
+  tryCatch({
+      # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
+  samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
   predictors= c("B02","B03","B04")
   
   message(paste("Class of data: ",toString(class(data))))
@@ -283,11 +283,15 @@ load_collection <- Process$new(
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
   
-  if (save == TRUE && is.null(name))
-  {
+  if (save == TRUE && is.null(name)){
     message("You need to deliver a name so the model can be saved in a .rds file")
     stop("")
-  }
+  }},
+  error = function(err){
+    message(toString(err))
+    message("Error in selecting bands with selected predictors")
+  })
+  
   
   
   tryCatch({
