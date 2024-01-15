@@ -335,7 +335,7 @@ load_collection <- Process$new(
     if(!(is.null(training.polygons$name))){
     training.polygons=dplyr::select(training.polygons, -name)
     }
-    training.polygons=dplyr::select(training.polygons, -geometry)
+    training.polygons$geometry=NULL
   },
   error = function(err){
     message("...Could not rename id-column of training polygons")
