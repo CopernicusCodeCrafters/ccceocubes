@@ -438,6 +438,8 @@ fill_NAs_cube <- Process$new(
   }
   #return(extractedData)
   #return(training_df)
+  message("Class of ML model:")
+  print(class(model))
   return(model)
    })
 

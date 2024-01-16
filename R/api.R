@@ -195,8 +195,13 @@ NULL
               sf::st_write(job$results, file, driver = "netCDF")
     }
     else if ("data.frame" %in% class(job$results) && !("sf" %in% class(job$results))){
-        file = job$results
-        file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
+        tryCatch({
+          file = job$results
+          file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
+        },error= function(err){
+          message(toString(err))
+          message("Error in API File Save")
+        })
     }
         
     else {
