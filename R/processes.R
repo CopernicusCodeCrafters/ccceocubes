@@ -443,52 +443,77 @@ fill_NAs_cube <- Process$new(
 
 
 # cube_classify
-# cube_classify <- Process$new(
-#   id = "cube_classify_1",
-#   description = "classifies a datacube after reducing dimension.",
-#   categories = as.array("cubes"),
-#   summary = "classifying using rf machine learning model",
-#   parameters = list(
-#     Parameter$new(
-#       name = "data",
-#       description = "A data cube.",
-#       schema = list(
-#         type = "object",
-#         subtype = "raster-cube"
-#       )
-#     ),
-#     Parameter$new(
-#       name = "model",
-#       description = "machine learning model",
-#       schema = list(
-#         type = "object",
-#       )
-#     )    
-#   ),
-#   returns=eo_datacube,
-#   # datacube : datacube used for classification
-#   # model    : trained machine learning model used for classification
-#   # job      : 
-  
-#   operation= function(data,model,aoi,crs,job){
-#     #reduce dimension erwartet Funktion 
-#     #data cube vorher reduced : muss hier nicht mehr getan werden
-    
-#     tryCatch({
-#       rfPredict <- predict(model,data)
+ cube_classify <- Process$new(
+   id = "cube_classify_1",
+   description = "classifies a datacube after reducing dimension.",
+   categories = as.array("cubes"),
+   summary = "classifying using rf machine learning model",
+   parameters = list(
+     Parameter$new(
+       name = "data",
+       description = "A data cube.",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       )
+     ),
+     Parameter$new(
+       name = "modelname",
+       description = "name of machine learning model which was created earlier and now is in workspace",
+       schema = list(
+         type = "object",
+       )
+     )    
+   ),
+   returns=eo_datacube,
+   # datacube : datacube used for classification
+   # model    : trained machine learning model used for classification
+   operation= function(data,modelname,aoi,crs,job){
+     #reduce dimension erwartet Funktion 
+     #data cube vorher reduced : muss hier nicht mehr getan werden
+    tryCatch({
+       usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
       
-#     },
-#     error = function(err)
-#     {
-#       message(toString(err))
-#       message("Error in predicting ")
-#     })
-    
-    
-    
-#   }
-  
-# )
+     },
+     error = function(err){
+       message(toString(err))
+       message("Could not load specified model with the given name")
+       stop("")
+     })
+
+      tryCatch({
+      
+     },
+     error = function(err){
+       message(toString(err))
+       message("")
+     })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     tryCatch({
+       prediction <- predict(usedmodel,data)
+      
+     },
+     error = function(err)
+     {
+       message(toString(err))
+       message("Error in predicting")
+     })
+    return(prediction)
+   }
+ )
 #' load stac
 load_stac <- Process$new(
   id = "load_stac",
@@ -1039,6 +1064,7 @@ reduce_dimension <- Process$new(
       }
 
       cube <- gdalcubes::reduce_time(data, bandStr)
+      message("... cube reduced in time dimension")
       return(cube)
     } else if (dimension == "bands") {
       cube <- gdalcubes::apply_pixel(data, reducer, keep_bands = FALSE)
@@ -1046,6 +1072,7 @@ reduce_dimension <- Process$new(
     } else {
       stop('Please select "t", "time" or "bands" as dimension')
     }
+    
   }
 )
 
