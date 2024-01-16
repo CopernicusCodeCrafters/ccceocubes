@@ -444,7 +444,7 @@ fill_NAs_cube <- Process$new(
 
 # cube_classify
  cube_classify <- Process$new(
-   id = "cube_classify_1",
+   id = "cube_classify",
    description = "classifies a datacube after reducing dimension.",
    categories = as.array("cubes"),
    summary = "classifying using rf machine learning model",
@@ -461,14 +461,14 @@ fill_NAs_cube <- Process$new(
        name = "modelname",
        description = "name of machine learning model which was created earlier and now is in workspace",
        schema = list(
-         type = "object",
+         type = "object"
        )
      )    
    ),
    returns=eo_datacube,
    # datacube : datacube used for classification
    # model    : trained machine learning model used for classification
-   operation= function(data,modelname,aoi,crs,job){
+   operation= function(data,modelname,job){
      #reduce dimension erwartet Funktion 
      #data cube vorher reduced : muss hier nicht mehr getan werden
     tryCatch({
@@ -482,25 +482,13 @@ fill_NAs_cube <- Process$new(
      })
 
       tryCatch({
+        message("")
       
      },
      error = function(err){
        message(toString(err))
        message("")
      })
-
-
-
-
-
-
-
-
-
-
-
-
-
 
      tryCatch({
        prediction <- predict(usedmodel,data)
@@ -855,8 +843,6 @@ filter_spatial <- Process$new(
   }
 )
 
-
-
 #' filter temporal
 filter_temporal <- Process$new(
   id = "filter_temporal",
@@ -1064,7 +1050,7 @@ reduce_dimension <- Process$new(
       }
 
       cube <- gdalcubes::reduce_time(data, bandStr)
-      message("... cube reduced in time dimension")
+      message("...Reduced cube")
       return(cube)
     } else if (dimension == "bands") {
       cube <- gdalcubes::apply_pixel(data, reducer, keep_bands = FALSE)
@@ -1072,7 +1058,6 @@ reduce_dimension <- Process$new(
     } else {
       stop('Please select "t", "time" or "bands" as dimension')
     }
-    
   }
 )
 
