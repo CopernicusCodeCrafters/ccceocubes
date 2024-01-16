@@ -194,7 +194,7 @@ NULL
 
               sf::st_write(job$results, file, driver = "netCDF")
     }
-    else if ("data.frame" %in% class(job$results) && !("sf" %in% class(job$results))){
+    else if ("train" %in% class(job$results) && "train.formula" %in% class(job$results)){
         tryCatch({
           file = job$results
           file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
