@@ -187,23 +187,18 @@ NULL
       file = gdalcubes::write_tif(job$results)
     }
     else if (format == "rds"){
+      tryCatch({
       file = job$results
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: RDS File Save did not work")
+      })
     }
     else if ("sf" %in% class(job$results) && "data.frame" %in% class(job$results)){
               file = base::tempfile()
 
               sf::st_write(job$results, file, driver = "netCDF")
-    }
-    else if ("train" %in% class(job$results) && "train.formula" %in% class(job$results)){
-        tryCatch({
-          file = job$results
-          file = saveRDS(file, paste0(Session$getConfig()$workspace.path, "/", "extractedData", ".rds"))
-        },error= function(err){
-          message(toString(err))
-          message("Error in API File Save")
-        })
-    }
-        
+    }    
     else {
       throwError("FormatUnsupported")
     }

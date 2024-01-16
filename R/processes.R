@@ -428,7 +428,7 @@ fill_NAs_cube <- Process$new(
   if (save){
     tryCatch({
       message("Saving...")
-      #model = saveRDS(model, paste0(Session$getConfig()$workspace.path,"/", name, ".rds"))
+      model = saveRDS(model, paste0(Session$getConfig()$workspace.path,"/", name, ".rds"))
       message(paste("Saved as ",paste0(name,".rds")))
     },
     error = function(err){
