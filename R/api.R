@@ -167,13 +167,29 @@ NULL
 
   if (class(format) == "list") {
     if (format$title == "Network Common Data Form") {
-      file = gdalcubes::write_ncdf(job$results)
+      tryCatch({
+          file = gdalcubes::write_ncdf(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: NCDF File Save did not work")
+      })
     }
     else if (format$title == "GeoTiff") {
-      file = gdalcubes::write_tif(job$results)
-    }
-    else if (format$title == "rds"){
-      file =job$results
+      tryCatch({
+          file = gdalcubes::write_tif(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: GeoTiff File Save did not work")
+      })
+      }
+    else if (format$title == "RDS"){
+      tryCatch({
+      file = base::tempfile()
+      saveRDS(job$results, file)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: RDS File Save did not work")
+      })
     }
     else {
       throwError("FormatUnsupported")
@@ -181,23 +197,29 @@ NULL
   }
   else {
     if (format == "NetCDF") {
-      file = gdalcubes::write_ncdf(job$results)
+      tryCatch({
+          file = gdalcubes::write_ncdf(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: NCDF File Save did not work")
+      })
     }
     else if (format == "GTiff") {
-      file = gdalcubes::write_tif(job$results)
-    }
-    else if (format == "rds"){
       tryCatch({
-      file = job$results
+          file = gdalcubes::write_tif(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: GeoTiff File Save did not work")
+      })
+    }
+    else if (format == "RDS"){
+      tryCatch({
+      file = base::tempfile()
+      saveRDS(job$results, file)
       },error= function(err){
         message(toString(err))
         message("Error in API: RDS File Save did not work")
       })
-    }
-    else if ("sf" %in% class(job$results) && "data.frame" %in% class(job$results)){
-              file = base::tempfile()
-
-              sf::st_write(job$results, file, driver = "netCDF")
     }    
     else {
       throwError("FormatUnsupported")
