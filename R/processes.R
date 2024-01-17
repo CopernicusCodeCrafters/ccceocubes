@@ -411,7 +411,7 @@ fill_NAs_cube <- Process$new(
     
     set.seed(123)
     # cross validation
-    ctrl_default <- caret::trainControl(method = "cv",number = 3,savePredictions = "final" classProbs = TRUE)
+    ctrl_default <- caret::trainControl(method = "cv",number = 3,savePredictions = "final", classProbs = TRUE)
     
      model <- caret::train(
        data = trainDat,
@@ -501,8 +501,7 @@ fill_NAs_cube <- Process$new(
        FUN = function(x){
           predict(x,usedModel)
        } )
-       prediction <- predict(usedmodel,data)
-      
+       
      },
      error = function(err)
      {
