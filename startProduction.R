@@ -3,6 +3,7 @@ library(openeocubes)
 library(gdalcubes)
 library(caret)
 library(sf)
+library(stats)
 
 
  #"34.209.215.214"

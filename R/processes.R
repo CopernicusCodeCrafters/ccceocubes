@@ -398,6 +398,7 @@ fill_NAs_cube <- Process$new(
     trainIDs = caret::createDataPartition(training_df$class, p = 0.9, list = FALSE)
     print(trainIDs)
     trainDat <- training_df[trainIDs,]
+    trainDat <- trainDat[complete.cases(train.Dat),]
     testDat  <- training_df[-trainIDs,]
     message("...After Data Partition")
   },
@@ -409,14 +410,14 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     
     set.seed(123)
-    
-    trainControl <- caret::trainControl(method = "none", classProbs = TRUE)
+    # cross validation
+    ctrl_default <- caret::trainControl(method = "cv",number = 3,savePredictions = "final" classProbs = TRUE)
     
      model <- caret::train(
        data = trainDat,
        class~.,
        tuneGrid = expand.grid(mtry = mt),
-       trControl = trainControl,
+       trControl = ctrl_default,
        method= "rf",
        importance=TRUE,
        ntree=nt)
@@ -481,7 +482,7 @@ fill_NAs_cube <- Process$new(
    ),
    returns=eo_datacube,
    # datacube : datacube used for classification
-   # model    : trained machine learning model used for classification
+   # modelname: trained machine learning model used for classification
    operation= function(data,modelname,job){
      #reduce dimension erwartet Funktion 
      #data cube vorher reduced : muss hier nicht mehr getan werden
@@ -495,17 +496,11 @@ fill_NAs_cube <- Process$new(
        message("Could not load specified model with the given name")
        stop("")
      })
-
-      tryCatch({
-        message("")
-      
-     },
-     error = function(err){
-       message(toString(err))
-       message("")
-     })
-
      tryCatch({
+      cube <- gdalcubes::apply_pixel(data,names = "PRED", keep_bands = FALSE,
+       FUN = function(x){
+          predict(x,usedModel)
+       } )
        prediction <- predict(usedmodel,data)
       
      },
