@@ -924,22 +924,30 @@ ndvi <- Process$new(
         type = "string"
       ),
       optional = TRUE
+    ),
+     Parameter$new(
+      name = "keepBands",
+      description = "if TRUE bands of original cube will be preserved",
+      schema = list(
+        type = "boolean"
+      ),
+      optional = FALSE
     )
   ),
   returns = eo_datacube,
-  operation = function(data, nir = "nir", red = "red", target_band = NULL, job) {
+  operation = function(data, nir = "nir", red = "red", target_band = NULL,keepBands = FALSE, job) {
     if ((toString(nir) == "B08") && (toString(red) == "B04")) {
-      cube <- gdalcubes::apply_pixel(data, "(B08-B04)/(B08+B04)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(B08-B04)/(B08+B04)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
     } else if ((toString(nir) == "B05") && (toString(red) == "B04")) {
-      cube <- gdalcubes::apply_pixel(data, "(B05-B04)/(B05+B04)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(B05-B04)/(B05+B04)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
     } else {
-      cube <- gdalcubes::apply_pixel(data, "(nir-red)/(nir+red)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(nir-red)/(nir+red)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
