@@ -184,8 +184,8 @@ NULL
       }
     else if (format$title == "RDS"){
       tryCatch({
-      file = base::tempfile()
-      saveRDS(job$results, file)
+      file = base::tempfile(pattern = "modelfile",fileext = ".rds")
+      saveRDS(job$results,file)
       },error= function(err){
         message(toString(err))
         message("Error in API: RDS File Save did not work")

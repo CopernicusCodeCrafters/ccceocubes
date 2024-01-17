@@ -420,6 +420,17 @@ fill_NAs_cube <- Process$new(
        importance=TRUE,
        ntree=nt)
     message("...After model creation")
+    message("Details of created model:")
+    print(model)
+    tryCatch({
+      message("Final model details:")
+    print(model$finalModel)
+    },
+  error = function(err){
+    message(toString(err))
+    message("Error: Could not print model$finalModel")
+  })
+    
   },
   error = function(err){
     message(toString(err))
@@ -475,7 +486,8 @@ fill_NAs_cube <- Process$new(
      #data cube vorher reduced : muss hier nicht mehr getan werden
     tryCatch({
        usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
-      
+        message("Details of chosen model:")
+        print(usedModel)
      },
      error = function(err){
        message(toString(err))
