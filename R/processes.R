@@ -301,6 +301,7 @@ fill_NAs_cube <- Process$new(
    # predictors : bands which should be used for prediction
    # zusätzliche Paramter :predictors ? 
    operation=function(data,samples= NULL, nt = 250 ,mt = 2,name = NULL,save = FALSE,job){
+    print("Start Training")
   tryCatch({
       # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
   samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
