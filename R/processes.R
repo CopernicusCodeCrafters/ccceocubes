@@ -227,7 +227,8 @@ fill_NAs_cube <- Process$new(
        schema = list(
          type = "object",
          subtype = "raster-cube"
-       )
+       ),
+       optional = FALSE
     )
   ),
   returns=eo_datacube,
@@ -256,7 +257,8 @@ fill_NAs_cube <- Process$new(
        schema = list(
          type = "object",
          subtype = "raster-cube"
-       )
+       ),
+       optional = FALSE
      ),
      Parameter$new(
        name = "samples",
@@ -264,37 +266,40 @@ fill_NAs_cube <- Process$new(
        schema = list(
          type = "object",
          subtype = "geojson"
-        
-       )
+       ),
+       optional = TRUE
      ),
      Parameter$new(
        name = "n_tree",
        description = "number of trees",
        schema = list(
          type = "numeric"
-                )
+      ),
+      optional = TRUE
      ),
      Parameter$new(
        name = "mtry",
        description = "number of predictors selected for each tree",
        schema = list(
          type = "numeric"
-       )
+       ),
+       optional = TRUE
      ),
      Parameter$new(
        name = "name",
        description = "name of the model which will be used to save the model",
        schema = list(
          type = "String"
-       )
+       ),
+       optional = TRUE
      ),
      Parameter$new(
        name = "save",
        description = "boolean determining if the model should be saved",
        schema = list(
-         type = "boolean"
-        
-       )
+         type = "boolean" 
+       ),
+       optional = TRUE
      )
    ),
    returns=eo_datacube,
