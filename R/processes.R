@@ -398,7 +398,7 @@ fill_NAs_cube <- Process$new(
     trainIDs = caret::createDataPartition(training_df$class, p = 0.9, list = FALSE)
     print(trainIDs)
     trainDat <- training_df[trainIDs,]
-    trainDat <- trainDat[complete.cases(train.Dat),]
+    #trainDat <- trainDat[complete.cases(train.Dat),]
     testDat  <- training_df[-trainIDs,]
     message("...After Data Partition")
   },
