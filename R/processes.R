@@ -282,18 +282,18 @@ fill_NAs_cube <- Process$new(
        )
      ),
      Parameter$new(
+       name = "name",
+       description = "name of the model which will be used to save the model",
+       schema = list(
+         type = "String"
+       )
+     ),
+     Parameter$new(
        name = "save",
        description = "boolean determining if the model should be saved",
        schema = list(
          type = "boolean"
         
-       )
-     ),
-     Parameter$new(
-       name = "name",
-       description = "name of the model which will be used to save the model",
-       schema = list(
-         type = "String"
        )
      )
    ),
