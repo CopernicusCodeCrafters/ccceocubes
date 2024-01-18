@@ -270,16 +270,16 @@ fill_NAs_cube <- Process$new(
        optional = TRUE
      ),
      Parameter$new(
-       name = "n_tree",
-       description = "number of trees",
+       name = "nt",
+       description = "number of trees : ntree",
        schema = list(
          type = "numeric"
       ),
       optional = TRUE
      ),
      Parameter$new(
-       name = "mtry",
-       description = "number of predictors selected for each tree",
+       name = "mt",
+       description = "number of predictors selected for each tree: mtry",
        schema = list(
          type = "numeric"
        ),
