@@ -310,7 +310,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
       # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
   samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
-  message(paste("Class of data: ",toString(class(data))))
+  #message(paste("Class of data: ",toString(class(data))))
   message(paste("ntree: ",toString(nt)))
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
@@ -371,9 +371,20 @@ fill_NAs_cube <- Process$new(
       training.polygons=dplyr::rename(training.polygons, class=classification)
       
     }
+    
   },
   error = function(err){
     message("...Could not rename column of training polygons")
+    message(toString(err))
+  })
+  tryCatch({
+    # Create ID by class
+    training.polygons <- transform(training.polygons,                                 
+                        classID = as.numeric(factor(class)))
+    idString= levels(as.factor(paste(training.polygons$classID,"represents",training.polygons$class)))
+  },
+  error = function(err){
+    message("...Could not create class IDs")
     message(toString(err))
   })
   tryCatch({
@@ -381,11 +392,12 @@ fill_NAs_cube <- Process$new(
     training.polygons=dplyr::select(training.polygons, -name)
     }
     training.polygons$geometry=NULL
+    training.polygons$class= NULL
     message("Trainingpolygons:")
-      print(training.polygons)
+    print(training.polygons)
   },
   error = function(err){
-    message("...Could not rename id-column of training polygons")
+    message("...Could not change columns of training polygons")
     message(toString(err))
   })
   tryCatch({
@@ -402,7 +414,7 @@ fill_NAs_cube <- Process$new(
   
   tryCatch({
     
-    trainIDs = caret::createDataPartition(training_df$class, p = 0.9, list = FALSE)
+    trainIDs = caret::createDataPartition(training_df$classID, p = 0.9, list = FALSE)
     print(trainIDs)
     trainDat <- training_df[trainIDs,]
     #trainDat <- trainDat[complete.cases(train.Dat),]
@@ -422,7 +434,7 @@ fill_NAs_cube <- Process$new(
     
      model <- caret::train(
        data = trainDat,
-       class~.,
+       classID~.,
        tuneGrid = expand.grid(mtry = mt),
        trControl = ctrl_default,
        method= "rf",
@@ -430,6 +442,7 @@ fill_NAs_cube <- Process$new(
        ntree=nt)
     message("...After model creation")
     message("Details of created model:")
+    message(idString)
     print(model)
     tryCatch({
       message("Final model details:")
@@ -495,7 +508,7 @@ fill_NAs_cube <- Process$new(
      #data cube vorher reduced : muss hier nicht mehr getan werden
     tryCatch({
        usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
-        message("Details of chosen model:")
+        message("Details of chosen model for Classification:")
         print(usedModel)
      },
      error = function(err){
@@ -504,12 +517,13 @@ fill_NAs_cube <- Process$new(
        stop("")
      })
         # gives all band names of datacube as vector
-        print("predictors:")
+        print("Given predictors for Classification:")
         predictors = names(data)
         print(predictors)
 
      tryCatch({
-      cube <- gdalcubes::apply_pixel(data,names = "PRED", keep_bands = FALSE,
+      message("Before apply pixel")
+      cube <- gdalcubes::apply_pixel(data,names = "class", keep_bands = FALSE,
        FUN = function(pixel){
         tryCatch({
           vectorNames = setNames(pixel, predictors)
@@ -520,14 +534,14 @@ fill_NAs_cube <- Process$new(
           return(NA)
           })
           tryCatch({
-          pixelClass = stats::predict(usedmodel, newdata = pixelBand_df)
-          return(pixelClass)
+          class = stats::predict(usedmodel, newdata = pixelBand_df)
+          return(class)
         },error = function(err){
           print("could not predict for one or more pixel with used data")
           return(NA)
           })
        })
-       
+       message("After apply pixel")
      },
      error = function(err)
      {
