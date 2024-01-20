@@ -323,11 +323,6 @@ fill_NAs_cube <- Process$new(
     message(toString(err))
     message("Error in First step")
   })
-  if(samples==NULL){
-    message("samples is NULL. No training polygons given?")
-    stop("")
-  }
-  
   tryCatch({
     # training data as sf so extract_geom can work with it
     # and harmonize CRS
