@@ -534,6 +534,8 @@ fill_NAs_cube <- Process$new(
        message(toString(err))
        message("Error in prediction process")
      })
+     message("Prediction made for pixels")
+     message(gdalcubes::as_json(cube))
     return(cube)
    }
  )
