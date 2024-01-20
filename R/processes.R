@@ -508,20 +508,38 @@ fill_NAs_cube <- Process$new(
        message("Could not load specified model with the given name")
        stop("")
      })
+        # gives all band names of datacube as vector
+        print("predictors:")
+        predictors = names(data)
+        print(predictors)
+
      tryCatch({
       cube <- gdalcubes::apply_pixel(data,names = "PRED", keep_bands = FALSE,
-       FUN = function(x){
-        print(x)
-          predict(x,usedModel)
-       } )
+       FUN = function(pixel){
+        tryCatch({
+          vectorNames = setNames(pixel, predictors)
+
+          pixelBand_df = as.data.frame(t(vectorNames))
+        },error = function(err){
+          print("failed in creating dataframe for pixel of cube")
+          return(NA)
+          })
+          tryCatch({
+          pixelClass = stats::predict(usedmodel, newdata = pixelBand_df)
+          return(pixelClass)
+        },error = function(err){
+          print("could not predict for one or more pixel with used data")
+          return(NA)
+          })
+       })
        
      },
      error = function(err)
      {
        message(toString(err))
-       message("Error in predicting")
+       message("Error in prediction process")
      })
-    return(prediction)
+    return(cube)
    }
  )
 #' load stac
