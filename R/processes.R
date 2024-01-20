@@ -380,7 +380,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     # Create ID by class
     training.polygons <- transform(training.polygons,                                 
-                        classID = as.numeric(factor(class)))
+                        classID = as.factor(as.numeric(factor(class))))
     idString= levels(as.factor(paste(training.polygons$classID,"represents",training.polygons$class)))
   },
   error = function(err){
