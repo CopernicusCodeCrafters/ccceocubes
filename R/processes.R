@@ -504,9 +504,9 @@ fill_NAs_cube <- Process$new(
      #data cube vorher reduced : muss hier nicht mehr getan werden
     tryCatch({
 
-      usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
+      usedmodel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
         message("Details of chosen model for Classification:")
-        print(usedModel)
+        print(usedmodel)
 
       tmp <- tempdir()
       saveRDS(usedmodel, paste0(tmp, "/usedmodel.rds"))
@@ -534,18 +534,26 @@ fill_NAs_cube <- Process$new(
             tmp <- Sys.getenv("TMPDIRPATH")
         },error = function(err){
           print("failed in loading required packages or could not get tmp dir path")
+          message(toString(err))
           stop("")
           })
 
         tryCatch({
-          usedmodel = readRDS(paste0(tmp, "/usedmodel.rds"))
-          predictors = readRDS(paste0(tmp, "/band_names.rds"))
+          tryCatch({
+              usedmodel = readRDS(paste0(tmp, "/usedmodel.rds"))
+              predictors = readRDS(paste0(tmp, "/band_names.rds"))
 
+          },error= function(err){
+          print("Could not read model or band_name from temp directory")
+          message(toString(err))
+            stop("")
+          })
+      
           vectorNames = setNames(pixel, predictors)
-
           pixelBand_df = as.data.frame(t(vectorNames))
         },error = function(err){
           print("failed in creating dataframe for pixel of cube")
+          message(toString(err))
           return(NA)
           })
           
@@ -554,10 +562,11 @@ fill_NAs_cube <- Process$new(
           return(class)
         },error = function(err){
           print("could not predict for one or more pixel with used data")
+          message(toString(err))
           return(NA)
           })
        })
-       
+
        message("After apply pixel")
      },
      error = function(err)
