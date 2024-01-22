@@ -303,14 +303,13 @@ fill_NAs_cube <- Process$new(
      )
    ),
    returns=eo_datacube,
-   # predictors : bands which should be used for prediction
-   # zusätzliche Paramter :predictors ? 
+  
    operation=function(data,samples= NULL, nt = 250 ,mt = 2,name = NULL,save = TRUE,job){
     print("Start Training")
   tryCatch({
       # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
   samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
-  #message(paste("Class of data: ",toString(class(data))))
+  
   message(paste("ntree: ",toString(nt)))
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
@@ -504,25 +503,44 @@ fill_NAs_cube <- Process$new(
      #reduce dimension erwartet Funktion 
      #data cube vorher reduced : muss hier nicht mehr getan werden
     tryCatch({
-       usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
+
+      usedModel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
         message("Details of chosen model for Classification:")
         print(usedModel)
+
+      tmp <- tempdir()
+      saveRDS(usedmodel, paste0(tmp, "/usedmodel.rds"))
+
+      # gives all band names of datacube as vector
+      band_names <- names(data)
+      print("Given predictors for Classification:")
+      print(band_names)
+      saveRDS(band_names, paste0(tmp, "/band_names.rds"))
+      Sys.setenv(TMPDIRPATH = tmp)
      },
      error = function(err){
        message(toString(err))
        message("Could not load specified model with the given name")
        stop("")
      })
-        # gives all band names of datacube as vector
-        print("Given predictors for Classification:")
-        predictors = names(data)
-        print(predictors)
-
+        
      tryCatch({
       message("Before apply pixel")
       cube <- gdalcubes::apply_pixel(data,names = "class", keep_bands = FALSE,
        FUN = function(pixel){
+
         tryCatch({
+            library(stats)
+            tmp <- Sys.getenv("TMPDIRPATH")
+        },error = function(err){
+          print("failed in loading required packages or could not get tmp dir path")
+          stop("")
+          })
+
+        tryCatch({
+          usedmodel = readRDS(paste0(tmp, "/usedmodel.rds"))
+          predictors = readRDS(paste0(tmp, "/band_names.rds"))
+
           vectorNames = setNames(pixel, predictors)
 
           pixelBand_df = as.data.frame(t(vectorNames))
@@ -530,6 +548,7 @@ fill_NAs_cube <- Process$new(
           print("failed in creating dataframe for pixel of cube")
           return(NA)
           })
+          
           tryCatch({
           class = stats::predict(usedmodel, newdata = pixelBand_df)
           return(class)
@@ -538,6 +557,7 @@ fill_NAs_cube <- Process$new(
           return(NA)
           })
        })
+       
        message("After apply pixel")
      },
      error = function(err)
