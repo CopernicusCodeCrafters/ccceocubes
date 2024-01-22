@@ -341,13 +341,12 @@ fill_NAs_cube <- Process$new(
       c = gdalcubes::srs(data)
       crsUse=as.numeric(gsub("EPSG:","",c))
       training.polygons = sf::st_transform(training.polygons, crs = crsUse)
-    }
-    
-  },
+    }},
   error = function(err){
     message(toString(err))
     message("Error in reading training data or transforming CRS ")
   })
+
   tryCatch({
     message("...Before extract_geom")
     extractedData = gdalcubes::extract_geom(data, training.polygons)
@@ -362,6 +361,7 @@ fill_NAs_cube <- Process$new(
     message(toString(err))
     message("Error in extract_geom")
   })
+
   # merge with id
   tryCatch({
     if(!(is.null(training.polygons$object_id))){
@@ -369,42 +369,44 @@ fill_NAs_cube <- Process$new(
     }
     if (!(is.null(training.polygons$classification))){
       training.polygons=dplyr::rename(training.polygons, class=classification)
-      
     }
-    
   },
   error = function(err){
     message("...Could not rename column of training polygons")
     message(toString(err))
   })
+
   tryCatch({
+    message("")
     # Create ID by class
-    training.polygons <- transform(training.polygons,                                 
-                        classID = as.factor(as.numeric(factor(class))))
-    idString= levels(as.factor(paste(training.polygons$classID,"represents",training.polygons$class)))
+    #training.polygons <- transform(training.polygons,                                 
+    #                    classID = as.factor(as.numeric(factor(class))))
+    #idString= levels(as.factor(paste(training.polygons$classID,"represents",training.polygons$class,"; ")))
   },
   error = function(err){
     message("...Could not create class IDs")
     message(toString(err))
   })
+
   tryCatch({
     if(!(is.null(training.polygons$name))){
     training.polygons=dplyr::select(training.polygons, -name)
     }
     training.polygons$geometry=NULL
-    training.polygons$class= NULL
-    message("Trainingpolygons:")
+    #training.polygons$class= NULL
+    print("Trainingpolygons:")
     print(training.polygons)
   },
   error = function(err){
     message("...Could not change columns of training polygons")
     message(toString(err))
   })
+
   tryCatch({
     
     training_df = merge(training.polygons, extractedData, by = "FID")
     training_df = dplyr::select(training_df, -FID)
-    message("...After dataframe merge")
+    print("...After dataframe merge")
     print(training_df)
   },
   error = function(err){
@@ -413,13 +415,12 @@ fill_NAs_cube <- Process$new(
   })
   
   tryCatch({
-    
-    trainIDs = caret::createDataPartition(training_df$classID, p = 0.9, list = FALSE)
+    trainIDs = caret::createDataPartition(training_df$class, p = 0.9, list = FALSE)
     print(trainIDs)
     trainDat <- training_df[trainIDs,]
     #trainDat <- trainDat[complete.cases(train.Dat),]
     testDat  <- training_df[-trainIDs,]
-    message("...After Data Partition")
+    print("...After Data Partition")
   },
   error = function(err){
     message("Error in Data Partition")
@@ -427,32 +428,31 @@ fill_NAs_cube <- Process$new(
   })
   
   tryCatch({
-    
     set.seed(123)
     # cross validation
     ctrl_default <- caret::trainControl(method = "cv",number = 3,savePredictions = "final", classProbs = TRUE)
     
      model <- caret::train(
        data = trainDat,
-       classID~.,
+       class~.,
        tuneGrid = expand.grid(mtry = mt),
        trControl = ctrl_default,
        method= "rf",
        importance=TRUE,
        ntree=nt)
-    message("...After model creation")
+
     message("Details of created model:")
-    message(idString)
+    #message(idString)
     print(model)
-    tryCatch({
-      message("Final model details:")
-    print(model$finalModel)
-    },
-  error = function(err){
-    message(toString(err))
-    message("Error: Could not print model$finalModel")
-  })
-    
+
+      tryCatch({
+        message("Final model details:")
+      print(model$finalModel)
+      },
+      error = function(err){
+      message(toString(err))
+      message("Error: Could not print model$finalModel")
+      })
   },
   error = function(err){
     message(toString(err))
@@ -460,7 +460,7 @@ fill_NAs_cube <- Process$new(
   })
   if (save){
     tryCatch({
-      message("Saving...")
+      print("Saving...")
       saveRDS(model, paste0(Session$getConfig()$workspace.path,"/", name, ".rds"))
       message(paste("Saved as ",paste0(name,".rds")))
     },
@@ -469,10 +469,7 @@ fill_NAs_cube <- Process$new(
       message(toString(err))
     })
   }
-  #return(extractedData)
-  #return(training_df)
-  message("Class of ML model:")
-  print(class(model))
+  print("...Training Process Done")
   return(model)
    })
 
