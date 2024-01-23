@@ -214,6 +214,8 @@ load_collection <- Process$new(
   }
 )
 
+get_modell <-
+
 #fill_NAs_cube
 fill_NAs_cube <- Process$new(
   id="fill_NAs_cube",
@@ -324,7 +326,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     # training data as sf so extract_geom can work with it
     # and harmonize CRS
-    if(class(samples)[1]=="sf"||class(samples)[2]=="sf"){
+    if(class(samples)[1]=="sf"){
       message("samples is sf object")
       training.polygons = samples
       c = gdalcubes::srs(data)
