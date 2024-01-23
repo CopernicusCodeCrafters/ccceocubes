@@ -264,8 +264,7 @@ fill_NAs_cube <- Process$new(
        name = "samples",
        description = "String containing training polygons in form of GeoJSON",
        schema = list(
-         type = "object",
-         subtype = "geojson"
+         type = "String"
        ),
        optional = TRUE
      ),
@@ -308,8 +307,8 @@ fill_NAs_cube <- Process$new(
     print("Start Training")
   tryCatch({
       # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
-  samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
-  
+  # samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
+  message(paste("samples: ",samples))
   message(paste("ntree: ",toString(nt)))
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
@@ -336,7 +335,7 @@ fill_NAs_cube <- Process$new(
       
       training.polygons = sf::st_read(samples)
       message("...After samples read")
-      
+      print(training.polygons)
       c = gdalcubes::srs(data)
       crsUse=as.numeric(gsub("EPSG:","",c))
       training.polygons = sf::st_transform(training.polygons, crs = crsUse)
