@@ -214,7 +214,48 @@ load_collection <- Process$new(
   }
 )
 
-get_modell <-
+get_modell <- Process$new(
+  id = "get_modell",
+  description = "get modell from workspace and download it",
+  categories = as.array("cubes"),
+  summary = "Download a collection",
+  parameters = list(
+    Parameter$new(
+         name = "modelname",
+       description = "name String of created model for download",
+       schema = list(
+         type = "String"
+       ),
+       optional = FALSE
+     )
+),
+returns = list(
+    description = "false if saving failed, true otherwise.",
+    schema = list(type = "boolean")
+  ),
+  operation = function(modelname,filedest,job){
+
+    tryCatch({
+      downloadmodel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
+
+    },error =function(err){
+      message(toString(err))
+      message("Could not load specified model with the given name")
+      stop("")
+    })
+
+    tryCatch({
+      json_data <- toJSON(downloadmodel)
+      httr::POST(paste0(Session$getConfig()$api.port,":8000","/mlmodell"), body = json_data )
+      return (TRUE)
+    },error =function(err){
+      message(toString(err))
+      message("Could not post ")
+      return (FALSE)
+      stop("")
+    })
+  }
+)
 
 #fill_NAs_cube
 fill_NAs_cube <- Process$new(
@@ -576,7 +617,8 @@ fill_NAs_cube <- Process$new(
        message("Error in prediction process")
      })
      message("Prediction made for pixels")
-     message(gdalcubes::as_json(cube))
+     print(cube)
+     #message(gdalcubes::as_json(cube))
     return(cube)
    }
  )
