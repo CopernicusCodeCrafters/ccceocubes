@@ -4,6 +4,7 @@ library(gdalcubes)
 library(caret)
 library(sf)
 library(stats)
+library(httr)
 
 
  #"34.209.215.214"
