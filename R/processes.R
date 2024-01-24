@@ -419,7 +419,9 @@ fill_NAs_cube <- Process$new(
 
   tryCatch({
     message("class as factor")
-    training.polygons$class = as.factor(training.polygons$class)
+    training.polygons$class = as.factor(make.names(training.polygons$class))
+    print("class after as factor and make names:")
+    print(training.polygons$class)
     # Create ID by class
     #training.polygons <- transform(training.polygons,                                 
     #                    classID = as.numeric(factor(class)))
