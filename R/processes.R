@@ -604,6 +604,9 @@ fill_NAs_cube <- Process$new(
           
           tryCatch({
           class = stats::predict(usedmodel, newdata = pixelBand_df)
+          class <- base::as.character(class) 
+          class= as.numeric(base::gsub("X","",class))
+
           return(class)
         },error = function(err){
           print("could not predict for one or more pixel with used data")
