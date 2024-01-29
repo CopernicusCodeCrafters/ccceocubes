@@ -192,7 +192,7 @@ load_collection <- Process$new(
     crs <- c("EPSG", crs)
     crs <- paste(crs, collapse = ":")
     v.overview <- gdalcubes::cube_view(
-      srs = crs, dx = 30, dy = 30, dt = "P15D",
+      srs = crs, dx = 20, dy = 20, dt = "P15D",
       aggregation = "median", resampling = "average",
       extent = list(
         t0 = t0, t1 = t1,
