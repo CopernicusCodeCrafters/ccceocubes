@@ -125,10 +125,18 @@ load_collection <- Process$new(
         type = "array"
       ),
       optional = TRUE
+    ),
+    Parameter$new(
+      name = "resolution",
+      description = "sets dx and dy to the same value",
+      schema = list(
+        type = "numeric"
+      ),
+      optional = TRUE
     )
   ),
   returns = eo_datacube,
-  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL, job) {
+  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30 job) {
     message(paste("Pfad workspace:",Session$getConfig()$workspace.path))
     # temporal extent preprocess
     t0 <- temporal_extent[[1]]
@@ -192,7 +200,7 @@ load_collection <- Process$new(
     crs <- c("EPSG", crs)
     crs <- paste(crs, collapse = ":")
     v.overview <- gdalcubes::cube_view(
-      srs = crs, dx = 10, dy = 10, dt = "P15D",
+      srs = crs, dx = resolution, dy = resolution, dt = "P15D",
       aggregation = "median", resampling = "average",
       extent = list(
         t0 = t0, t1 = t1,
@@ -228,8 +236,8 @@ get_modell <- Process$new(
        ),
        optional = FALSE
      )
-),
-returns = list(
+  ),
+  returns = list(
     description = "false if saving failed, true otherwise.",
     schema = list(type = "boolean")
   ),
