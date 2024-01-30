@@ -136,7 +136,7 @@ load_collection <- Process$new(
     )
   ),
   returns = eo_datacube,
-  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30 job) {
+  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,job) {
     message(paste("Pfad workspace:",Session$getConfig()$workspace.path))
     # temporal extent preprocess
     t0 <- temporal_extent[[1]]
