@@ -191,7 +191,7 @@ NULL
       res$body = readBin(file, "raw", n = file.info(file)$size)
       content_type = plumber:::getContentType(tools::file_ext(file))
       res$setHeader("Content-Type", content_type)
-
+      print("Sending RDS as response")
       return(res)
       },error= function(err){
         message(toString(err))
@@ -229,6 +229,7 @@ NULL
       res$body = readBin(first, "raw", n = file.info(file)$size)
       content_type = plumber:::getContentType(tools::file_ext(file))
       res$setHeader("Content-Type", content_type)
+      print("Sending RDS as response")
 
       return(res)
       
