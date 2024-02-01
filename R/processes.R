@@ -133,10 +133,18 @@ load_collection <- Process$new(
         type = "numeric"
       ),
       optional = TRUE
+    ),
+    Parameter$new(
+      name = "cloudcover",
+      description = "will only search for images with cloudcover lower than given paramater. is 30 on default",
+      schema = list(
+        type = "numeric"
+      ),
+      optional = TRUE
     )
   ),
   returns = eo_datacube,
-  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,job) {
+  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,cloudcover=30,job) {
     message(paste("Pfad workspace:",Session$getConfig()$workspace.path))
     # temporal extent preprocess
     t0 <- temporal_extent[[1]]
@@ -158,6 +166,10 @@ load_collection <- Process$new(
     xmax_stac <- xmax
     ymax_stac <- ymax
     message("....After default Spatial extent for STAC")
+
+    if(cloudcover<5){
+      message("Cloudcover is lower than 5% ! Probably will not find images")
+    }
 
     if (crs != 4326) {
       message("....crs is not 4326")
@@ -192,7 +204,7 @@ load_collection <- Process$new(
     img.col <- gdalcubes::stac_image_collection(items$features,
                                                 property_filter =
                                                   function(x) {
-                                                    x[["eo:cloud_cover"]] < 30
+                                                    x[["eo:cloud_cover"]] < cloudcover
                                                   }
     )
 
