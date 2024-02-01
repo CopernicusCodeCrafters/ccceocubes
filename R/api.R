@@ -184,11 +184,18 @@ NULL
       }
     else if (format$title == "RDS"){
       tryCatch({
-      file = base::tempfile(pattern = "modelfile",fileext = ".rds")
+      file = base::tempfile()
       saveRDS(job$results,file)
+
+      res$status = 200
+      res$body = readBin(file, "raw", n = file.info(file)$size)
+      content_type = plumber:::getContentType(tools::file_ext(file))
+      res$setHeader("Content-Type", content_type)
+
+      return(res)
       },error= function(err){
         message(toString(err))
-        message("Error in API: RDS File Save did not work")
+        message("Error in API: Format title: RDS - File Save did not work")
       })
     }
     else {
@@ -216,9 +223,18 @@ NULL
       tryCatch({
       file = base::tempfile()
       saveRDS(job$results, file)
+      
+      
+      res$status = 200
+      res$body = readBin(first, "raw", n = file.info(file)$size)
+      content_type = plumber:::getContentType(tools::file_ext(file))
+      res$setHeader("Content-Type", content_type)
+
+      return(res)
+      
       },error= function(err){
         message(toString(err))
-        message("Error in API: RDS File Save did not work")
+        message("Error in API: Format : RDS - File Save did not work")
       })
     }    
     else {
@@ -226,13 +242,19 @@ NULL
     }
   }
 
-  first = file[1]
+  tryCatch({
+    first = file[1]
   res$status = 200
   res$body = readBin(first, "raw", n = file.info(first)$size)
   content_type = plumber:::getContentType(tools::file_ext(first))
   res$setHeader("Content-Type", content_type)
 
   return(res)
+  },error= function(err){
+        message(toString(err))
+        message("Error in API: Reading Binary of file did not work. Could not save file.")
+      })
+  
 },error=handleError)
 }
 

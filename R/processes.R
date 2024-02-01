@@ -597,7 +597,7 @@ fill_NAs_cube <- Process$new(
               predictors = readRDS(paste0(tmp, "/band_names.rds"))
 
           },error= function(err){
-          print("Could not read model or band_name from temp directory")
+          print("Could not read model or band_names from temp directory")
           message(toString(err))
             stop("")
           })
