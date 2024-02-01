@@ -226,7 +226,7 @@ NULL
       
       
       res$status = 200
-      res$body = readBin(first, "raw", n = file.info(file)$size)
+      res$body = readBin(file, "raw", n = file.info(file)$size)
       content_type = plumber:::getContentType(tools::file_ext(file))
       res$setHeader("Content-Type", content_type)
       print("Sending RDS as response")
