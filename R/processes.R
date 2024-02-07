@@ -495,6 +495,8 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     bands_pred <- names(training_df)
     bands_pred <- bands_pred[! bands_pred %in% "FID"]
+    
+    bands_pred <- bands_pred[! bands_pred %in% "class"]
     print("bands used for model:")
     print(bands_pred)
     response <- "class"
