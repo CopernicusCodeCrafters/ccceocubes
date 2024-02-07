@@ -457,7 +457,7 @@ fill_NAs_cube <- Process$new(
     training.polygons=dplyr::select(training.polygons, -name)
     }
     training.polygons$geometry=NULL
-    #training.polygons$class= NULL
+    
     print("Trainingpolygons:")
     print(training.polygons)
   },
@@ -469,7 +469,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     
     training_df = merge(training.polygons, extractedData, by = "FID")
-    training_df = dplyr::select(training_df, -FID)
+    #training_df = dplyr::select(training_df, -FID)
     print("...After dataframe merge")
     print(training_df)
   },
@@ -477,12 +477,13 @@ fill_NAs_cube <- Process$new(
     message("...Error in merging")
     message(toString(err))
   })
-  
+  # data partition
   tryCatch({
-    trainIDs = caret::createDataPartition(training_df$class, p = 0.9, list = FALSE)
+    trainIDs = caret::createDataPartition(training_df$FID, p = 0.9, list = FALSE)
     print(trainIDs)
     trainDat <- training_df[trainIDs,]
-    #trainDat <- trainDat[complete.cases(train.Dat),]
+    traindDat <- trainDat[complete.cases(trainDat),]
+    
     testDat  <- training_df[-trainIDs,]
     print("...After Data Partition")
   },
@@ -490,15 +491,29 @@ fill_NAs_cube <- Process$new(
     message("Error in Data Partition")
     message(toString(err))
   })
+
+  tryCatch({
+    bands_pred <- names(training_df)
+    index <- which(bands_pred == "FID")
+    bands_pred[index] <- NULL
+    print("bands used for model:")
+    print(bands_pred)
+    response <- "class"
+  },
+    error = function(err){
+    message(toString(err))
+    message("Could not set predictors")
+      })
   
   tryCatch({
     set.seed(123)
     # cross validation
-    ctrl_default <- caret::trainControl(method = "cv",number = 3,savePredictions = "final", classProbs = TRUE)
+    ctrl_default <- caret::trainControl(method = "cv",number = 10,savePredictions = "final", classProbs = TRUE)
     
+    #model creation
      model <- caret::train(
-       data = trainDat,
-       class~.,
+        trainDat[,bands_pred],
+       trainDat[,response],
        tuneGrid = expand.grid(mtry = mt),
        trControl = ctrl_default,
        method= "rf",
@@ -522,6 +537,7 @@ fill_NAs_cube <- Process$new(
     message(toString(err))
     message("Error in model creation")
   })
+  # save model to workspace
   if (save){
     tryCatch({
       print("Saving...")
