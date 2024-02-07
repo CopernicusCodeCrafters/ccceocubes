@@ -509,7 +509,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     set.seed(123)
     # cross validation
-    ctrl_default <- caret::trainControl(method = "cv",number = 10,savePredictions = "final", classProbs = TRUE)
+    ctrl_default <- caret::trainControl(method = "cv",number = 10,savePredictions = TRUE)
     
     #model creation
      model <- caret::train(
@@ -518,6 +518,7 @@ fill_NAs_cube <- Process$new(
        tuneGrid = expand.grid(mtry = mt),
        trControl = ctrl_default,
        method= "rf",
+       metric = "Kappa",
        importance=TRUE,
        ntree=nt)
 
