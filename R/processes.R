@@ -136,7 +136,7 @@ load_collection <- Process$new(
     ),
     Parameter$new(
       name = "cloudcover",
-      description = "will only search for images with cloudcover lower than given paramater. is 30 on default",
+      description = "will only search for images with cloudcover lower than given paramater. is 10 on default",
       schema = list(
         type = "numeric"
       ),
@@ -144,7 +144,7 @@ load_collection <- Process$new(
     )
   ),
   returns = eo_datacube,
-  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,cloudcover=30,job) {
+  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,cloudcover=10,job) {
     message(paste("Pfad workspace:",Session$getConfig()$workspace.path))
     # temporal extent preprocess
     t0 <- temporal_extent[[1]]
@@ -402,6 +402,8 @@ fill_NAs_cube <- Process$new(
       c = gdalcubes::srs(data)
       crsUse=as.numeric(gsub("EPSG:","",c))
       training.polygons = sf::st_transform(training.polygons, crs = crsUse)
+      message("Classes of training Polygons before processing:")
+      print(training.polygons$classification)
     }},
   error = function(err){
     message(toString(err))
@@ -438,7 +440,6 @@ fill_NAs_cube <- Process$new(
   })
 
   tryCatch({
-    message("class as factor")
     training.polygons$class = make.names(training.polygons$class)
     print("class after as factor and make names:")
     print(training.polygons$class)
@@ -470,7 +471,7 @@ fill_NAs_cube <- Process$new(
     
     training_df = merge(training.polygons, extractedData, by = "FID")
     #training_df = dplyr::select(training_df, -FID)
-    print("...After dataframe merge")
+    print("...After dataframe merge. training df:")
     print(training_df)
   },
   error = function(err){
@@ -480,7 +481,7 @@ fill_NAs_cube <- Process$new(
   # data partition
   tryCatch({
     trainIDs = caret::createDataPartition(training_df$FID, p = 0.9, list = FALSE)
-    print(trainIDs)
+    #print(trainIDs)
     trainDat <- training_df[trainIDs,]
     traindDat <- trainDat[complete.cases(trainDat),]
     
