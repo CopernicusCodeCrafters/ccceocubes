@@ -471,6 +471,8 @@ fill_NAs_cube <- Process$new(
     
     training_df = merge(training.polygons, extractedData, by = "FID")
     #training_df = dplyr::select(training_df, -FID)
+    print("Classes after merge:")
+    print(training_df$class)
     print("...After dataframe merge. training df:")
     print(training_df)
   },
