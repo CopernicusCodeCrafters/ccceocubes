@@ -369,13 +369,13 @@ fill_NAs_cube <- Process$new(
    operation=function(data,samples= NULL, nt = 250 ,mt = 2,name = NULL,save = TRUE,job){
     print("Start Training")
   tryCatch({
-      # später weg machen : Nur für Test. Ansonsten muss json an Prozess gechickt werden.
-  # samples= sf::st_read(base::paste0(Session$getConfig()$workspace.path,"/Trainingspolygone.json"))
+  # show parameters
   message(paste("samples: ",samples))
   message(paste("ntree: ",toString(nt)))
   message(paste("mtry: ",toString(mt)))
   message(paste("Saving: ",toString(save)))
   
+  # check if name is set
   if (save == TRUE && is.null(name)){
     message("You need to deliver a name so the model can be saved in a .rds file. If you do not want to save the model,set save=FALSE")
     stop("")
@@ -403,7 +403,7 @@ fill_NAs_cube <- Process$new(
       crsUse=as.numeric(gsub("EPSG:","",c))
       training.polygons = sf::st_transform(training.polygons, crs = crsUse)
       message("Classes of training Polygons before processing:")
-      print(training.polygons$classification)
+      print(unique(training.polygons$classification))
     }},
   error = function(err){
     message(toString(err))
@@ -411,13 +411,15 @@ fill_NAs_cube <- Process$new(
   })
 
   tryCatch({
+    # extract band values of poylgons
     message("...Before extract_geom")
+    training.polygons <- training.polygons[order(training.polygons$object_id),]
     extractedData = gdalcubes::extract_geom(data, training.polygons)
     extractedData = dplyr::select(extractedData, -time)
     message("extracted Data:")
     print(extractedData)
     #only for test
-    saveRDS(extractedData, paste0(Session$getConfig()$workspace.path,"/", "extractedDataForTest", ".rds"))
+    #saveRDS(extractedData, paste0(Session$getConfig()$workspace.path,"/", "extractedDataForTest", ".rds"))
     message("...After extract_geom")
   },
   error = function(err){
@@ -429,6 +431,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     if(!(is.null(training.polygons$object_id))){
       training.polygons=dplyr::rename(training.polygons, FID=object_id)
+      
     }
     if (!(is.null(training.polygons$classification))){
       training.polygons=dplyr::rename(training.polygons, class=classification)
@@ -442,7 +445,7 @@ fill_NAs_cube <- Process$new(
   tryCatch({
     training.polygons$class = make.names(training.polygons$class)
     print("class after as factor and make names:")
-    print(training.polygons$class)
+    print(unique(training.polygons$class))
     # Create ID by class
     #training.polygons <- transform(training.polygons,                                 
     #                    classID = as.numeric(factor(class)))
@@ -471,8 +474,8 @@ fill_NAs_cube <- Process$new(
     
     training_df = merge(training.polygons, extractedData, by = "FID")
     #training_df = dplyr::select(training_df, -FID)
-    print("Classes after merge:")
-    print(training_df$class)
+    print("Classes after merge: (training df)")
+    print(unique(training_df$class))
     print("...After dataframe merge. training df:")
     print(training_df)
   },
@@ -485,6 +488,8 @@ fill_NAs_cube <- Process$new(
     trainIDs = caret::createDataPartition(training_df$FID, p = 0.9, list = FALSE)
     #print(trainIDs)
     trainDat <- training_df[trainIDs,]
+    print("Classes of trainDat :")
+    print(unique(trainDat$class))
     traindDat <- trainDat[complete.cases(trainDat),]
     
     testDat  <- training_df[-trainIDs,]
