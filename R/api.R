@@ -167,10 +167,36 @@ NULL
 
   if (class(format) == "list") {
     if (format$title == "Network Common Data Form") {
-      file = gdalcubes::write_ncdf(job$results)
+      tryCatch({
+          file = gdalcubes::write_ncdf(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: NCDF File Save did not work")
+      })
     }
     else if (format$title == "GeoTiff") {
-      file = gdalcubes::write_tif(job$results)
+      tryCatch({
+          file = gdalcubes::write_tif(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: GeoTiff File Save did not work")
+      })
+      }
+    else if (format$title == "RDS"){
+      tryCatch({
+      file = base::tempfile()
+      saveRDS(job$results,file)
+
+      res$status = 200
+      res$body = readBin(file, "raw", n = file.info(file)$size)
+      content_type = plumber:::getContentType(tools::file_ext(file))
+      res$setHeader("Content-Type", content_type)
+      print("Sending RDS as response")
+      return(res)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: Format title: RDS - File Save did not work")
+      })
     }
     else {
       throwError("FormatUnsupported")
@@ -178,23 +204,58 @@ NULL
   }
   else {
     if (format == "NetCDF") {
-      file = gdalcubes::write_ncdf(job$results)
+      tryCatch({
+          file = gdalcubes::write_ncdf(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: NCDF File Save did not work")
+      })
     }
     else if (format == "GTiff") {
-      file = gdalcubes::write_tif(job$results)
+      tryCatch({
+          file = gdalcubes::write_tif(job$results)
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: GeoTiff File Save did not work")
+      })
     }
+    else if (format == "RDS"){
+      tryCatch({
+      file = base::tempfile()
+      saveRDS(job$results, file)
+      
+      
+      res$status = 200
+      res$body = readBin(file, "raw", n = file.info(file)$size)
+      content_type = plumber:::getContentType(tools::file_ext(file))
+      res$setHeader("Content-Type", content_type)
+      print("Sending RDS as response")
+
+      return(res)
+      
+      },error= function(err){
+        message(toString(err))
+        message("Error in API: Format : RDS - File Save did not work")
+      })
+    }    
     else {
       throwError("FormatUnsupported")
     }
   }
 
-  first = file[1]
+  tryCatch({
+    first = file[1]
   res$status = 200
   res$body = readBin(first, "raw", n = file.info(first)$size)
   content_type = plumber:::getContentType(tools::file_ext(first))
   res$setHeader("Content-Type", content_type)
 
   return(res)
+  },error= function(err){
+        message(toString(err))
+        message("Error in API: Reading Binary of file did not work. Could not save file.")
+      })
+  
 },error=handleError)
 }
 
@@ -314,5 +375,9 @@ addEndpoint = function() {
   Session$assignProcess(subtract)
   Session$assignProcess(multiply)
   Session$assignProcess(divide)
+  Session$assignProcess(train_model_ml)
+  Session$assignProcess(fill_NAs_cube)
+  Session$assignProcess(cube_classify)
+  Session$assignProcess(get_modell)
 
 }

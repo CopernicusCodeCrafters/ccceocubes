@@ -5,6 +5,7 @@
 #' @import rstac
 #' @import useful
 #' @import sf
+#' @import caret
 NULL
 
 #' schema_format
@@ -124,10 +125,27 @@ load_collection <- Process$new(
         type = "array"
       ),
       optional = TRUE
+    ),
+    Parameter$new(
+      name = "resolution",
+      description = "sets dx and dy to the same value",
+      schema = list(
+        type = "numeric"
+      ),
+      optional = TRUE
+    ),
+    Parameter$new(
+      name = "cloudcover",
+      description = "will only search for images with cloudcover lower than given paramater. is 10 on default",
+      schema = list(
+        type = "numeric"
+      ),
+      optional = TRUE
     )
   ),
   returns = eo_datacube,
-  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL, job) {
+  operation = function(id, spatial_extent, crs = 4326, temporal_extent, bands = NULL,resolution=30,cloudcover=10,job) {
+    message(paste("Pfad workspace:",Session$getConfig()$workspace.path))
     # temporal extent preprocess
     t0 <- temporal_extent[[1]]
     t1 <- temporal_extent[[2]]
@@ -148,6 +166,10 @@ load_collection <- Process$new(
     xmax_stac <- xmax
     ymax_stac <- ymax
     message("....After default Spatial extent for STAC")
+
+    if(cloudcover<5){
+      message("Cloudcover is lower than 5% ! Probably will not find images")
+    }
 
     if (crs != 4326) {
       message("....crs is not 4326")
@@ -182,7 +204,7 @@ load_collection <- Process$new(
     img.col <- gdalcubes::stac_image_collection(items$features,
                                                 property_filter =
                                                   function(x) {
-                                                    x[["eo:cloud_cover"]] < 30
+                                                    x[["eo:cloud_cover"]] < cloudcover
                                                   }
     )
 
@@ -190,7 +212,7 @@ load_collection <- Process$new(
     crs <- c("EPSG", crs)
     crs <- paste(crs, collapse = ":")
     v.overview <- gdalcubes::cube_view(
-      srs = crs, dx = 30, dy = 30, dt = "P15D",
+      srs = crs, dx = resolution, dy = resolution, dt = "P15D",
       aggregation = "median", resampling = "average",
       extent = list(
         t0 = t0, t1 = t1,
@@ -212,7 +234,446 @@ load_collection <- Process$new(
   }
 )
 
+get_modell <- Process$new(
+  id = "get_modell",
+  description = "get modell from workspace and download it",
+  categories = as.array("cubes"),
+  summary = "Download a collection",
+  parameters = list(
+    Parameter$new(
+         name = "modelname",
+       description = "name String of created model for download",
+       schema = list(
+         type = "String"
+       ),
+       optional = FALSE
+     )
+  ),
+  returns = list(
+    description = "false if saving failed, true otherwise.",
+    schema = list(type = "boolean")
+  ),
+  operation = function(modelname,filedest,job){
 
+    tryCatch({
+      downloadmodel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
+
+    },error =function(err){
+      message(toString(err))
+      message("Could not load specified model with the given name")
+      stop("")
+    })
+
+    tryCatch({
+      json_data <- toJSON(downloadmodel)
+      httr::POST(paste0(Session$getConfig()$api.port,":8000","/mlmodell"), body = json_data )
+      return (TRUE)
+    },error =function(err){
+      message(toString(err))
+      message("Could not post ")
+      return (FALSE)
+      stop("")
+    })
+  }
+)
+
+#fill_NAs_cube
+fill_NAs_cube <- Process$new(
+  id="fill_NAs_cube",
+  description = "fills NA pixels of a data cube by nearest neighbor.",
+  categories= as.array("cubes"),
+  summary = "Filling NAs values",
+  parameters = list(
+    Parameter$new(
+      name = "data",
+      description = "datacube",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       ),
+       optional = FALSE
+    )
+  ),
+  returns=eo_datacube,
+  operation=function(data,job){
+
+    tryCatch({
+      cube = gdalcubes::fill_time(data, method = "near")
+      message("...After Filling NAs")
+    },error = function(err){
+      message(toString(err))
+      message("Error in Filling NAs of cube")
+      })
+    return(cube)
+  }
+)
+#train_model_ml
+ train_model_ml <-Process$new(
+   id="train_model_ml",
+  description = "train random forest model.",
+   categories = as.array("cubes"),
+   summary = "training a rf model",
+   parameters = list(
+     Parameter$new(
+         name = "data",
+       description = "datacube",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       ),
+       optional = FALSE
+     ),
+     Parameter$new(
+       name = "samples",
+       description = "String containing training polygons in form of GeoJSON",
+       schema = list(
+         type = "String"
+       ),
+       optional = TRUE
+     ),
+     Parameter$new(
+       name = "nt",
+       description = "number of trees : ntree",
+       schema = list(
+         type = "numeric"
+      ),
+      optional = TRUE
+     ),
+     Parameter$new(
+       name = "mt",
+       description = "number of predictors selected for each tree: mtry",
+       schema = list(
+         type = "numeric"
+       ),
+       optional = TRUE
+     ),
+     Parameter$new(
+       name = "name",
+       description = "name of the model which will be used to save the model",
+       schema = list(
+         type = "String"
+       ),
+       optional = TRUE
+     ),
+     Parameter$new(
+       name = "save",
+       description = "boolean determining if the model should be saved",
+       schema = list(
+         type = "boolean" 
+       ),
+       optional = TRUE
+     )
+   ),
+   returns=eo_datacube,
+  
+   operation=function(data,samples= NULL, nt = 250 ,mt = 2,name = NULL,save = TRUE,job){
+    print("Start Training")
+  tryCatch({
+  # show parameters
+  message(paste("samples: ",samples))
+  message(paste("ntree: ",toString(nt)))
+  message(paste("mtry: ",toString(mt)))
+  message(paste("Saving: ",toString(save)))
+  
+  # check if name is set
+  if (save == TRUE && is.null(name)){
+    message("You need to deliver a name so the model can be saved in a .rds file. If you do not want to save the model,set save=FALSE")
+    stop("")
+  }},
+  error = function(err){
+    message(toString(err))
+    message("Error in First step")
+  })
+  tryCatch({
+    # training data as sf so extract_geom can work with it
+    # and harmonize CRS
+    if(class(samples)[1]=="sf"){
+      message("samples is sf object")
+      training.polygons = samples
+      c = gdalcubes::srs(data)
+      crsUse=as.numeric(gsub("EPSG:","",c))
+      training.polygons = sf::st_transform(training.polygons, crs = crsUse)
+    }
+    else{
+      
+      training.polygons = sf::st_read(samples)
+      message("...After samples read")
+      print(training.polygons)
+      c = gdalcubes::srs(data)
+      crsUse=as.numeric(gsub("EPSG:","",c))
+      training.polygons = sf::st_transform(training.polygons, crs = crsUse)
+      message("Classes of training Polygons before processing:")
+      print(unique(training.polygons$classification))
+    }},
+  error = function(err){
+    message(toString(err))
+    message("Error in reading training data or transforming CRS ")
+  })
+
+  tryCatch({
+    # extract band values of poylgons
+    message("...Before extract_geom")
+    training.polygons <- training.polygons[order(training.polygons$object_id),]
+    extractedData = gdalcubes::extract_geom(data, training.polygons)
+    extractedData = dplyr::select(extractedData, -time)
+    message("extracted Data:")
+    print(extractedData)
+    #only for test
+    #saveRDS(extractedData, paste0(Session$getConfig()$workspace.path,"/", "extractedDataForTest", ".rds"))
+    message("...After extract_geom")
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in extract_geom")
+  })
+
+  # merge with id
+  tryCatch({
+    if(!(is.null(training.polygons$object_id))){
+      training.polygons=dplyr::rename(training.polygons, FID=object_id)
+      
+    }
+    if (!(is.null(training.polygons$classification))){
+      training.polygons=dplyr::rename(training.polygons, class=classification)
+    }
+  },
+  error = function(err){
+    message("...Could not rename column of training polygons")
+    message(toString(err))
+  })
+
+  tryCatch({
+    training.polygons$class = make.names(training.polygons$class)
+    print("class after as factor and make names:")
+    print(unique(training.polygons$class))
+    # Create ID by class
+    #training.polygons <- transform(training.polygons,                                 
+    #                    classID = as.numeric(factor(class)))
+    #idString= levels(as.factor(paste(training.polygons$classID,"represents",training.polygons$class,"; ")))
+  },
+  error = function(err){
+    message("...Could not create class IDs")
+    message(toString(err))
+  })
+
+  tryCatch({
+    if(!(is.null(training.polygons$name))){
+    training.polygons=dplyr::select(training.polygons, -name)
+    }
+    training.polygons$geometry=NULL
+    
+    print("Trainingpolygons:")
+    print(training.polygons)
+  },
+  error = function(err){
+    message("...Could not change columns of training polygons")
+    message(toString(err))
+  })
+
+  tryCatch({
+    
+    training_df = merge(training.polygons, extractedData, by = "FID")
+    #training_df = dplyr::select(training_df, -FID)
+    print("Classes after merge: (training df)")
+    print(unique(training_df$class))
+    print("...After dataframe merge. training df:")
+    print(training_df)
+  },
+  error = function(err){
+    message("...Error in merging")
+    message(toString(err))
+  })
+  # data partition
+  tryCatch({
+    trainIDs = caret::createDataPartition(training_df$FID, p = 0.9, list = FALSE)
+    #print(trainIDs)
+    trainDat <- training_df[trainIDs,]
+    print("Classes of trainDat :")
+    print(unique(trainDat$class))
+    traindDat <- trainDat[complete.cases(trainDat),]
+    
+    testDat  <- training_df[-trainIDs,]
+    print("...After Data Partition")
+  },
+  error = function(err){
+    message("Error in Data Partition")
+    message(toString(err))
+  })
+
+  tryCatch({
+    bands_pred <- names(training_df)
+    bands_pred <- bands_pred[! bands_pred %in% "FID"]
+    
+    bands_pred <- bands_pred[! bands_pred %in% "class"]
+    print("bands used for model:")
+    print(bands_pred)
+    response <- "class"
+  },
+    error = function(err){
+    message(toString(err))
+    message("Could not set predictors")
+      })
+  
+  tryCatch({
+    set.seed(123)
+    # cross validation
+    ctrl_default <- caret::trainControl(method = "cv",number = 10,savePredictions = TRUE)
+    
+    #model creation
+     model <- caret::train(
+        trainDat[,bands_pred],
+       trainDat[,response],
+       tuneGrid = expand.grid(mtry = mt),
+       trControl = ctrl_default,
+       method= "rf",
+       metric = "Kappa",
+       importance=TRUE,
+       ntree=nt)
+
+    message("Details of created model:")
+    #message(idString)
+    print(model)
+
+      tryCatch({
+        message("Final model details:")
+      print(model$finalModel)
+      },
+      error = function(err){
+      message(toString(err))
+      message("Error: Could not print model$finalModel")
+      })
+  },
+  error = function(err){
+    message(toString(err))
+    message("Error in model creation")
+  })
+  # save model to workspace
+  if (save){
+    tryCatch({
+      print("Saving...")
+      saveRDS(model, paste0(Session$getConfig()$workspace.path,"/", name, ".rds"))
+      message(paste("Saved as ",paste0(name,".rds")))
+    },
+    error = function(err){
+      message("Error in saving")
+      message(toString(err))
+    })
+  }
+  print("...Training Process Done")
+  return(model)
+   })
+
+
+# cube_classify
+ cube_classify <- Process$new(
+   id = "cube_classify",
+   description = "classifies a datacube after reducing dimension.",
+   categories = as.array("cubes"),
+   summary = "classifying using rf machine learning model",
+   parameters = list(
+     Parameter$new(
+       name = "data",
+       description = "A data cube.",
+       schema = list(
+         type = "object",
+         subtype = "raster-cube"
+       )
+     ),
+     Parameter$new(
+       name = "modelname",
+       description = "name of machine learning model which was created earlier and now is in workspace",
+       schema = list(
+         type = "object"
+       )
+     )    
+   ),
+   returns=eo_datacube,
+   # datacube : datacube used for classification
+   # modelname: trained machine learning model used for classification
+   operation= function(data,modelname,job){
+     #reduce dimension erwartet Funktion 
+     #data cube vorher reduced : muss hier nicht mehr getan werden
+    tryCatch({
+
+      usedmodel = base::readRDS(paste0(Session$getConfig()$workspace.path,"/",modelname,".rds"))
+        message("Details of chosen model for Classification:")
+        print(usedmodel)
+
+      tmp <- tempdir()
+      saveRDS(usedmodel, paste0(tmp, "/usedmodel.rds"))
+
+      # gives all band names of datacube as vector
+      band_names <- names(data)
+      print("Given predictors for Classification:")
+      print(band_names)
+      saveRDS(band_names, paste0(tmp, "/band_names.rds"))
+      Sys.setenv(TMPDIRPATH = tmp)
+     },
+     error = function(err){
+       message(toString(err))
+       message("Could not load specified model with the given name")
+       stop("")
+     })
+        
+     tryCatch({
+      message("Before apply pixel")
+      cube <- gdalcubes::apply_pixel(data,names = "class", keep_bands = FALSE,
+       FUN = function(pixel){
+
+        tryCatch({
+            library(stats)
+            tmp <- Sys.getenv("TMPDIRPATH")
+        },error = function(err){
+          print("failed in loading required packages or could not get tmp dir path")
+          message(toString(err))
+          stop("")
+          })
+
+        tryCatch({
+          tryCatch({
+              usedmodel = readRDS(paste0(tmp, "/usedmodel.rds"))
+              predictors = readRDS(paste0(tmp, "/band_names.rds"))
+
+          },error= function(err){
+          print("Could not read model or band_names from temp directory")
+          message(toString(err))
+            stop("")
+          })
+      
+          vectorNames = setNames(pixel, predictors)
+          pixelBand_df = as.data.frame(t(vectorNames))
+        },error = function(err){
+          print("failed in creating dataframe for pixel of cube")
+          message(toString(err))
+          return(NA)
+          })
+          
+          tryCatch({
+          class = stats::predict(usedmodel, newdata = pixelBand_df)
+          class <- base::as.character(class) 
+          class= as.numeric(base::gsub("X","",class))
+
+          return(class)
+        },error = function(err){
+          print("could not predict for one or more pixel with used data")
+          message(toString(err))
+          return(NA)
+          })
+       })
+
+       message("After apply pixel")
+     },
+     error = function(err)
+     {
+       message(toString(err))
+       message("Error in prediction process")
+     })
+     message("Prediction made for pixels")
+     print(cube)
+     #message(gdalcubes::as_json(cube))
+    return(cube)
+   }
+ )
 #' load stac
 load_stac <- Process$new(
   id = "load_stac",
@@ -443,7 +904,12 @@ filter_bands <- Process$new(
   ),
   returns = eo_datacube,
   operation = function(data, bands, job) {
+    print("Bänder :")
+    print(gdalcubes::bands(data))
+
+
     if (!is.null(bands)) {
+
       cube <- gdalcubes::select_bands(data, bands)
     }
     message("Filtered data cube ....")
@@ -549,8 +1015,6 @@ filter_spatial <- Process$new(
   }
 )
 
-
-
 #' filter temporal
 filter_temporal <- Process$new(
   id = "filter_temporal",
@@ -623,22 +1087,30 @@ ndvi <- Process$new(
         type = "string"
       ),
       optional = TRUE
+    ),
+     Parameter$new(
+      name = "keepBands",
+      description = "if TRUE bands of original cube will be preserved",
+      schema = list(
+        type = "boolean"
+      ),
+      optional = FALSE
     )
   ),
   returns = eo_datacube,
-  operation = function(data, nir = "nir", red = "red", target_band = NULL, job) {
+  operation = function(data, nir = "nir", red = "red", target_band = NULL,keepBands = FALSE, job) {
     if ((toString(nir) == "B08") && (toString(red) == "B04")) {
-      cube <- gdalcubes::apply_pixel(data, "(B08-B04)/(B08+B04)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(B08-B04)/(B08+B04)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
     } else if ((toString(nir) == "B05") && (toString(red) == "B04")) {
-      cube <- gdalcubes::apply_pixel(data, "(B05-B04)/(B05+B04)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(B05-B04)/(B05+B04)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
     } else {
-      cube <- gdalcubes::apply_pixel(data, "(nir-red)/(nir+red)", names = "NDVI", keep_bands = FALSE)
+      cube <- gdalcubes::apply_pixel(data, "(nir-red)/(nir+red)", names = "NDVI", keep_bands = keepBands)
       message("ndvi calculated ....")
       message(gdalcubes::as_json(cube))
       return(cube)
@@ -646,7 +1118,91 @@ ndvi <- Process$new(
   }
 )
 
+#EVI
+evi <- Process$new(
+  id = "evi",
+  description = "Computes the Enhanced Vegetation Index (EVI). The EVI is computed as 2.5 * (NIR - RED) / ((NIR + 6*RED - 7.5*BLUE) + 1)",
+  categories = as.array("cubes"),
+  summary = "Enhanced Vegetation Index",
+  parameters = list(
+    Parameter$new(
+      name = "data",
+      description = "A data cube with bands.",
+      schema = list(
+        type = "object",
+        subtype = "raster-cube"
+      )
+    ),
+    Parameter$new(
+      name = "nir",
+      description = "The name of the NIR band. Defaults to the band that has the common name nir assigned. For Sentinel 2 'B08' is used.",
+      schema = list(
+        type = "string"
+      ),
+      optional = FALSE
+    ),
+    Parameter$new(
+      name = "shortwl_nir",
+      description = "The name of the VNIR band which has a shorter wavelength than the nir band. For Sentinel 2 'B06' is used.",
+      schema = list(
+        type = "string"
+      ),
+      optional = FALSE
+    ),
+    Parameter$new(
+      name = "red",
+      description = "The name of the red band. Defaults to the band that has the common name red assigned. For Sentinel 2 'B04' is used.",
+      schema = list(
+        type = "string"
+      ),
+      optional = FALSE
+    ),
+    Parameter$new(
+      name = "blue",
+      description = "The name of the blue band. Defaults to the band that has the common name blue assigned. For Sentinel 2 'B02' is used.",
+      schema = list(
+        type = "string"
+      ),
+      optional = FALSE
+    ),
+    Parameter$new(
+      name = "target_band",
+      description = "By default, the dimension of type bands is dropped. To keep the dimension specify a new band name in this parameter so that a new dimension label with the specified name will be added for the computed values.",
+      schema = list(
+        type = "string"
+      ),
+      optional = TRUE
+    )
+  ),
+  returns = eo_datacube,
+  operation = function(data, nir = "nir",shortwl_nir="shortwl_nir", red = "red", blue = "blue", target_band = NULL, job){
+    # Function to ensure band names are properly formatted
+    format_band_name <- function(band) {
+      if (grepl("^B\\d{2}$", band, ignore.case = TRUE)) {
+        return(toupper(band))
+      } else {
+        return(band)
+      }
+    }
 
+    # Apply formatting to band names
+    nir_formatted <- format_band_name(nir)
+    red_formatted <- format_band_name(red)
+    blue_formatted <- format_band_name(blue)
+    shortwl_nir_formatted <- format_band_name(shortwl_nir)
+
+    # Construct the NDVI calculation formula
+    evi_formula <- sprintf("2.5*((%s-%s)/(%s+6*%s-7.5*%s)+1)", nir_formatted, red_formatted, nir_formatted, shortwl_nir_formatted,blue_formatted)
+
+    # Apply the NDVI calculation
+    cube <- gdalcubes::apply_pixel(data, evi_formula, names = "EVI", keep_bands = FALSE)
+
+    # Log and return the result
+    message("EVI calculated ....")
+    message(gdalcubes::as_json(cube))
+    return(cube)
+  }
+)
 #' rename_dimension
 rename_dimension <- Process$new(
   id = "rename_dimension",
@@ -758,6 +1314,7 @@ reduce_dimension <- Process$new(
       }
 
       cube <- gdalcubes::reduce_time(data, bandStr)
+      message("...Reduced cube")
       return(cube)
     } else if (dimension == "bands") {
       cube <- gdalcubes::apply_pixel(data, reducer, keep_bands = FALSE)
