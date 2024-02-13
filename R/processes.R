@@ -189,9 +189,10 @@ load_collection <- Process$new(
 
     # connect to STAC API using rstac and get satellite data
     message("STAC API call.....")
-    stac_object <- rstac::stac("https://earth-search.aws.element84.com/v0")
-    items <- stac_object %>%
-      stac_search(
+    tryCatch({
+        stac_object <- rstac::stac("https://earth-search.aws.element84.com/v0")
+        items <- stac_object %>%
+        stac_search(
         collections = id,
         bbox = c(xmin_stac, ymin_stac, xmax_stac, ymax_stac),
         datetime = time_range,
@@ -199,7 +200,12 @@ load_collection <- Process$new(
       ) %>%
       post_request() %>%
       items_fetch()
-
+    }, error=function(err){
+        message(toString(err))
+    })
+    
+    
+  tryCatch({
     # create image collection from STAC items features
     img.col <- gdalcubes::stac_image_collection(items$features,
                                                 property_filter =
@@ -220,6 +226,11 @@ load_collection <- Process$new(
         top = ymax, bottom = ymin
       )
     )
+
+    },error=function(err){
+    message(toString(err))
+    })
+    
 
     # data cube creation
     cube <- gdalcubes::raster_cube(img.col, v.overview)

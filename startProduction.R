@@ -15,6 +15,7 @@ if (aws.host == "") {
   tryCatch({
   aws.host <- NULL
   message("AWS Host is NULL")
+  
   },
   error = function(err){
     message(toString(err))
@@ -22,11 +23,12 @@ if (aws.host == "") {
 }else {
   tryCatch({
     message("AWS host port id is: ", aws.host)
+
   },error = function(err){
     message(toString(err))
   })
 }
-
+#message ("openeohost is :", hostSet)
 config <- SessionConfig(api.port = 8000, host = "0.0.0.0", aws.ipv4 = aws.host)
 config$workspace.path <- "/var/openeo/workspace"
 createSessionInstance(config)
